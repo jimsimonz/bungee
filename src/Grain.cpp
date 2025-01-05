@@ -25,7 +25,7 @@ Grain::Grain(int log2SynthesisHop, int channelCount) :
 	partials.reserve(1 << log2TransformLength);
 }
 
-InputChunk Grain::specify(const Request &r, Grain &previous, SampleRates sampleRates, int log2SynthesisHop)
+InputChunk Grain::specify(const Request &r, Grain &previous, SampleRates sampleRates, int log2SynthesisHop, double bufferStartPosition)
 {
 	request = r;
 	BUNGEE_ASSERT1(request.pitch > 0.);
@@ -68,14 +68,14 @@ InputChunk Grain::specify(const Request &r, Grain &previous, SampleRates sampleR
 		auto halfInputFrameCount = inputResampled.frameCount / 2;
 		if (resampleOperations.input.ratio != 1.f)
 			halfInputFrameCount = int(std::round(halfInputFrameCount / resampleOperations.input.ratio)) + 1;
-		inputChunk.begin = int(std::round(request.position)) - halfInputFrameCount;
-		inputChunk.end = int(std::round(request.position)) + halfInputFrameCount;
+		inputChunk.begin = int(std::round(request.position - bufferStartPosition)) - halfInputFrameCount;
+		inputChunk.end = int(std::round(request.position - bufferStartPosition)) + halfInputFrameCount;
 
 		return inputChunk;
 	}
 }
 
-Eigen::Ref<Eigen::ArrayXXf> Grain::resampleInput(Eigen::Ref<Eigen::ArrayXXf> input, int log2WindowLength)
+Eigen::Ref<Eigen::ArrayXXf> Grain::resampleInput(Eigen::Ref<Eigen::ArrayXXf> input, int log2WindowLength, int &muteFrameCountHead, int &muteFrameCountTail)
 {
 	if (resampleOperations.input.function)
 	{
@@ -84,7 +84,9 @@ Eigen::Ref<Eigen::ArrayXXf> Grain::resampleInput(Eigen::Ref<Eigen::ArrayXXf> inp
 		offset += 1 << (log2WindowLength - 1);
 		offset -= analysis.positionError;
 
-		resampleOperations.input.function(inputResampled, offset, input, resampleOperations.input.ratio, resampleOperations.input.ratio, false);
+		resampleOperations.input.function(inputResampled, offset, input, resampleOperations.input.ratio, resampleOperations.input.ratio, false, muteFrameCountHead, muteFrameCountTail);
+
+		muteFrameCountHead = muteFrameCountTail = 0;
 
 		return inputResampled.unpadded().topRows(inputResampled.frameCount);
 	}

@@ -132,11 +132,10 @@ inline void resampleInner(int variableFrameCount, Padded &fixedBuffer, float &fi
 		}
 
 	fixedBufferOffset += variableFrameCount * (ratioBegin + ratio) * .5f;
-	fixedBufferOffset -= fixedBuffer.frameCount;
 }
 
 template <class Mode, class Interpolation>
-inline int resample(Padded &fixedBuffer, float &fixedBufferOffset, Ref variableBuffer, float ratioBegin, float ratioEnd, bool alignEnd)
+inline int resample(Padded &fixedBuffer, float &fixedBufferOffset, Ref variableBuffer, float ratioBegin, float ratioEnd, bool alignEnd, int skipHead = 0, int skipTail = 0)
 {
 	int variableFrameCount = (int)std::round(2 * (fixedBuffer.frameCount + ratioEnd - fixedBufferOffset) / (ratioBegin + ratioEnd) - 1);
 
@@ -146,6 +145,17 @@ inline int resample(Padded &fixedBuffer, float &fixedBufferOffset, Ref variableB
 		BUNGEE_ASSERT1(!"Resample::resample: variableBuffer is too short");
 		variableFrameCount = (int)variableBuffer.rows();
 	}
+
+	if (skipHead)
+	{
+		// run to adjust fixBufferOffset according to skipHead
+		if (ratioBegin != ratioEnd)
+			resampleInner<Mode, None, true>(skipHead, fixedBuffer, fixedBufferOffset, variableBuffer, ratioBegin, ratioEnd);
+		else
+			resampleInner<Mode, None, false>(skipHead, fixedBuffer, fixedBufferOffset, variableBuffer, ratioBegin, ratioEnd);
+		variableFrameCount -= skipHead;
+	}
+	variableFrameCount -= skipTail;
 
 	if (alignEnd)
 	{
@@ -158,6 +168,7 @@ inline int resample(Padded &fixedBuffer, float &fixedBufferOffset, Ref variableB
 		resampleInner<Mode, Interpolation, true>(variableFrameCount, fixedBuffer, fixedBufferOffset, variableBuffer, ratioBegin, ratioEnd);
 	else
 		resampleInner<Mode, Interpolation, false>(variableFrameCount, fixedBuffer, fixedBufferOffset, variableBuffer, ratioBegin, ratioEnd);
+	fixedBufferOffset -= fixedBuffer.frameCount;
 
 	if (!(truncate || std::abs(fixedBufferOffset) < (alignEnd ? 1e-2f : (ratioBegin + ratioEnd) * 0.3f)))
 	{

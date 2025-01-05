@@ -9,19 +9,19 @@ int main(int argc, const char *argv[])
 	using namespace Bungee;
 
 	Request request{};
-
-#ifndef BUNGEE_IMPLEMENTATION
-#	define BUNGEE_IMPLEMENTATION Basic
+#ifndef BUNGEE_EDITION
+#	define BUNGEE_EDITION Basic
 #endif
-#define XSTR(a) STR(a)
-#define STR(A) #A
-	static const auto helpString = std::string("Bungee " XSTR(BUNGEE_IMPLEMENTATION)) + " audio speed and pitch changer\n\nVersion: " + Bungee::Stretcher<BUNGEE_IMPLEMENTATION>::version() + "\n";
+	typedef BUNGEE_EDITION Edition;
+
+	static const auto helpString = std::string("Bungee ") + Bungee::Stretcher<Edition>::edition() + " audio speed and pitch changer\n\n" +
+		"Version: " + Bungee::Stretcher<Edition>::version() + "\n";
 
 	CommandLine::Options options{"<bungee-command>", helpString};
 	CommandLine::Parameters parameters{options, argc, argv, request};
 	CommandLine::Processor processor{parameters, request};
 
-	Bungee::Stretcher<BUNGEE_IMPLEMENTATION> stretcher(processor.sampleRates, processor.channelCount);
+	Bungee::Stretcher<Edition> stretcher(processor.sampleRates, processor.channelCount);
 
 	processor.restart(request);
 	stretcher.preroll(request);
@@ -31,7 +31,6 @@ int main(int argc, const char *argv[])
 	{
 		// This code exists only to demonstrate the usage of the Bungee stretcher with the Push::InputBuffer
 		// See the else part of the code for an example of the native "pull" API.
-
 		std::cout << "Using Push::InputBuffer with " << pushFrameCount << " frames per push\n";
 
 		InputChunk inputChunk = stretcher.specifyGrain(request);
@@ -70,11 +69,24 @@ int main(int argc, const char *argv[])
 	{
 		// Regular pull API
 
+		{
+			// Fill the audio start and end padding with NaN so that it becomes obvious if  a problem
+			// with muteFrameCountHead/Tail cause Bungee to read from the out-of-bounds frames.
+			const auto n = processor.inputFramesPad * processor.channelCount;
+			const auto x = std::numeric_limits<float>::quiet_NaN();
+			std::fill(processor.inputBuffer.begin(), processor.inputBuffer.begin() + n, x);
+			std::fill(processor.inputBuffer.end() - n, processor.inputBuffer.end(), x);
+		}
+
 		for (bool done = false; !done;)
 		{
 			InputChunk inputChunk = stretcher.specifyGrain(request);
 
-			stretcher.analyseGrain(processor.getInputAudio(inputChunk), processor.inputChannelStride);
+			const auto muteFrameCountHead = std::max(0, -inputChunk.begin);
+			const auto muteFrameCountTail = std::max(0, inputChunk.end - processor.inputFrameCount);
+
+			stretcher.analyseGrain(processor.getInputAudio(inputChunk), processor.inputChannelStride, muteFrameCountHead, muteFrameCountTail);
+
 			OutputChunk outputChunk;
 			stretcher.synthesiseGrain(outputChunk);
 

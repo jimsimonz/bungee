@@ -59,7 +59,7 @@ struct Grain
 
 	Grain(int log2SynthesisHop, int channelCount);
 
-	InputChunk specify(const Request &request, Grain &previous, SampleRates sampleRates, int log2SynthesisHop);
+	InputChunk specify(const Request &request, Grain &previous, SampleRates sampleRates, int log2SynthesisHop, double bufferStartPosition);
 
 	bool reverse() const
 	{
@@ -73,14 +73,23 @@ struct Grain
 
 	void applyEnvelope();
 
-	auto inputChunkMap(const float *data, std::ptrdiff_t stride)
+	auto inputChunkMap(const float *data, std::ptrdiff_t stride, int &muteFrameCountHead, int &muteFrameCountTail)
 	{
 		typedef Eigen::OuterStride<Eigen::Dynamic> Stride;
 		typedef Eigen::Map<Eigen::ArrayXXf, 0, Stride> Map;
-		return Map((float *)data, inputChunk.end - inputChunk.begin, transformed.cols(), Stride(stride));
+
+		const auto frameCount = inputChunk.end - inputChunk.begin;
+
+		muteFrameCountHead = std::clamp<int>(muteFrameCountHead, 0, frameCount);
+		muteFrameCountTail = std::clamp<int>(muteFrameCountTail, 0, frameCount);
+
+		Map m((float *)data, frameCount, transformed.cols(), Stride(stride));
+		BUNGEE_ASSERT2(!m.middleRows(muteFrameCountHead, m.rows() - muteFrameCountHead - muteFrameCountTail).hasNaN());
+
+		return m;
 	}
 
-	Eigen::Ref<Eigen::ArrayXXf> resampleInput(Eigen::Ref<Eigen::ArrayXXf> ref, int log2WindowLength);
+	Eigen::Ref<Eigen::ArrayXXf> resampleInput(Eigen::Ref<Eigen::ArrayXXf> input, int log2WindowLength, int &muteFrameCountHead, int &muteFrameCountTail);
 };
 
 } // namespace Bungee

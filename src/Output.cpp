@@ -110,7 +110,7 @@ OutputChunk Output::Segment::resample(float &resampleOffset, Resample::Operation
 			resampleOperationEnd.function = &Resample::resample<Resample::FixedToVariable, Resample::None>;
 
 		const bool alignEnd = resampleOperationEnd.ratio == 1.f;
-		const auto frameCount = resampleOperationEnd.function(bufferLapped, resampleOffset, bufferResampled, resampleOperationBegin.ratio, resampleOperationEnd.ratio, alignEnd);
+		const auto frameCount = resampleOperationEnd.function(bufferLapped, resampleOffset, bufferResampled, resampleOperationBegin.ratio, resampleOperationEnd.ratio, alignEnd, 0, 0);
 
 		return outputChunk(bufferResampled.topRows(frameCount), bufferLapped.allZeros);
 	}

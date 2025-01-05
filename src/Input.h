@@ -12,12 +12,12 @@ namespace Bungee {
 
 struct Input
 {
-	Eigen::ArrayXf analysisWindowBasic;
+	Eigen::ArrayXf window;
 	Eigen::ArrayXXf windowedInput;
 
 	Input(int log2SynthesisHop, int channelCount, Fourier::Transforms &transforms);
 
-	int applyAnalysisWindow(const Eigen::Ref<const Eigen::ArrayXXf> &input);
+	int applyAnalysisWindow(const Eigen::Ref<const Eigen::ArrayXXf> &input, int muteFrameCountHead, int muteFrameCountTail);
 };
 
 } // namespace Bungee

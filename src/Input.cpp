@@ -15,18 +15,53 @@ static constexpr float gain = (3 * pi) / (3 * pi + 8);
 } // namespace
 
 Input::Input(int log2SynthesisHop, int channelCount, Fourier::Transforms &transforms) :
-	analysisWindowBasic(Window::fromFrequencyDomainCoefficients(transforms, log2SynthesisHop + 3, gain / (8 << log2SynthesisHop), {1.f, 0.5f})),
+	window(Window::fromFrequencyDomainCoefficients(transforms, log2SynthesisHop + 3, gain / (8 << log2SynthesisHop), {1.f, 0.5f})),
 	windowedInput{(8 << log2SynthesisHop), channelCount}
 {
 	windowedInput.setZero();
 	transforms.prepareForward(log2SynthesisHop + 3);
 }
 
-int Input::applyAnalysisWindow(const Eigen::Ref<const Eigen::ArrayXXf> &input)
+int Input::applyAnalysisWindow(const Eigen::Ref<const Eigen::ArrayXXf> &input, int muteFrameCountHead, int muteFrameCountTail)
 {
-	const auto half = analysisWindowBasic.rows() / 2;
-	Window::Apply::special<false>(analysisWindowBasic.head(half), input.bottomRows(input.rows() / 2).topRows(half), windowedInput.topRows(half));
-	Window::Apply::special<false>(analysisWindowBasic.tail(half), input.topRows(input.rows() / 2).bottomRows(half), windowedInput.bottomRows(half));
+	const int half = window.rows() / 2;
+	BUNGEE_ASSERT1(input.rows() % 2 == 0);
+	const int unused = std::max<int>(input.rows() / 2 - half, 0);
+	muteFrameCountHead -= unused;
+	muteFrameCountTail -= unused;
+
+	{
+		// top half of window, bottom half of input -> top half of output
+		const int muteHead = std::clamp(muteFrameCountHead - half, 0, half);
+		const int muteTail = std::clamp(muteFrameCountTail, 0, half);
+		const int unmuted = half - muteHead - muteTail;
+
+		windowedInput.topRows(muteHead).setZero();
+
+		Window::Apply::special<false>(
+			window.segment(muteHead, unmuted),
+			input.middleRows(input.rows() / 2 + muteHead, unmuted),
+			windowedInput.middleRows(muteHead, unmuted));
+
+		windowedInput.middleRows(half - muteTail, muteTail).setZero();
+	}
+
+	{
+		// bottom half of window , top half of input, -> bottom half of output
+		const int muteHead = std::clamp(muteFrameCountHead, 0, half);
+		const int muteTail = std::clamp(muteFrameCountTail - half, 0, half);
+		const int unmuted = half - muteHead - muteTail;
+
+		windowedInput.middleRows(half, muteHead).setZero();
+
+		Window::Apply::special<false>(
+			window.segment(window.rows() - muteTail - unmuted, unmuted),
+			input.middleRows(input.rows() / 2 - half + muteHead, unmuted),
+			windowedInput.middleRows(half + muteHead, unmuted));
+
+		windowedInput.bottomRows(muteTail).setZero();
+	}
+
 	return Bungee::log2((int)windowedInput.rows());
 }
 

@@ -44,16 +44,16 @@ jobs:
           done
 
       - name: 🗜️ Prepare archives
-        working-directory: ${{github.workspace}}/install
         run: |
-          cd bungee-windows-x86_64
-          zip -r ../bungee-windows.zip *
+          mkdir ${{github.workspace}}/artifact
+          cd ${{github.workspace}}/install/bungee-windows-x86_64
+          zip -r ${{github.workspace}}/artifact/bungee-${{github.ref_name}}-windows.zip *
 
       - name: ✈️ Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: ubuntu-latest-install 
-          path: ${{github.workspace}}/install
+          path: ${{github.workspace}}/artifact
 
           
   build_macos:
@@ -72,7 +72,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: ubuntu-latest-install 
-          path: ${{github.workspace}}/install
+          path: ${{github.workspace}}/artifact
 
       - name: 🛠️ Configure, build and install Apple presets
         env:
@@ -86,7 +86,7 @@ jobs:
               --preset ${PRESET} \
               -S bungee \
               -B builds/${PRESET} \
-              -D CMAKE_INSTALL_PREFIX=bungee-${PRESET} \
+              -D CMAKE_INSTALL_PREFIX=${{github.workspace}}/install/${PRESET} \
               -D BUNGEE_VERSION=${GITHUB_REF_NAME//v}
             cmake \
               --build builds/${PRESET} \
@@ -97,8 +97,7 @@ jobs:
 
       - name: 🗜️ Prepare archives
         run: |
-          mv bungee-apple-mac bungee-mac
-          tar -cvzf ${{github.workspace}}/install/bungee-mac.tgz bungee-mac/*
+          tar -cvzf ${{github.workspace}}/artifact/bungee-${{github.ref_name}}-mac.tgz ${{github.workspace}}/install/apple-mac/*
 
       - name: ⭐ Create release
         env:
@@ -107,6 +106,5 @@ jobs:
           gh release create "${{github.ref_name}}" \
               --repo="${{github.repository}}" \
               --title="Bungee ${{github.ref_name}}" \
-              ${{github.workspace}}/install/bungee-windows.zip \
-              ${{github.workspace}}/install/bungee-mac.tgz
+              ${{github.workspace}}/artifact/*
   

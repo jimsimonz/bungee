@@ -1,5 +1,5 @@
 execute_process(
-    COMMAND git -C ${GIT_CWD} describe --always --abbrev=8 --dirty
+    COMMAND git -C ${GIT_CWD} describe --tags --always --abbrev=8 --dirty
     OUTPUT_VARIABLE GIT_DESCRIBE
     ERROR_QUIET)
 

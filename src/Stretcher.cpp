@@ -3,86 +3,14 @@
 
 #define BUNGEE_BASIC_CPP
 
-#include "Basic.h"
+#include "Stretcher.h"
 #include "Resample.h"
 #include "Synthesis.h"
 #include "log2.h"
 
-using namespace Bungee;
-
-namespace Bungee {
-extern const char *versionDescription;
-}
-
-const char *Bungee_Stretcher_version()
-{
-	return Bungee::versionDescription;
-}
-
-void *Bungee_Stretcher_create(SampleRates sampleRates, int channelCount, int log2SynthesisHop)
-{
-	return new Basic(sampleRates, channelCount, log2SynthesisHop);
-}
-
-void Bungee_Stretcher_destroy(void *implementation)
-{
-	delete reinterpret_cast<Basic *>(implementation);
-}
-
-void Bungee_Stretcher_analyseGrain(void *implementation, const float *data, intptr_t channelStride)
-{
-	reinterpret_cast<Basic *>(implementation)->analyseGrain(data, channelStride);
-}
-
-void Bungee_Stretcher_synthesiseGrain(void *implementation, OutputChunk *outputChunk)
-{
-	reinterpret_cast<Basic *>(implementation)->synthesiseGrain(*outputChunk);
-}
-
-bool Bungee_Stretcher_isFlushed(const void *implementation)
-{
-	return reinterpret_cast<const Basic *>(implementation)->grains.flushed();
-}
-
-Bungee_InputChunk Bungee_Stretcher_specifyGrain(void *implementation, const Request *request)
-{
-	return reinterpret_cast<Basic *>(implementation)->specifyGrain(*request);
-}
-
-int Bungee_Stretcher_maxInputFrameCount(const void *implementation)
-{
-	return reinterpret_cast<const Basic *>(implementation)->maxInputFrameCount(true);
-}
-
-void Bungee_Stretcher_preroll(const void *implementation, Bungee_Request *request)
-{
-	reinterpret_cast<const Basic *>(implementation)->preroll(*request);
-}
-
-void Bungee_Stretcher_next(const void *implementation, Bungee_Request *request)
-{
-	reinterpret_cast<const Basic *>(implementation)->next(*request);
-}
-
-Bungee_Stretcher_FunctionTable Bungee_Stretcher_getFunctionTable()
-{
-	return Bungee_Stretcher_FunctionTable{
-		Bungee_Stretcher_version,
-		Bungee_Stretcher_create,
-		Bungee_Stretcher_destroy,
-		Bungee_Stretcher_maxInputFrameCount,
-		Bungee_Stretcher_preroll,
-		Bungee_Stretcher_next,
-		Bungee_Stretcher_specifyGrain,
-		Bungee_Stretcher_analyseGrain,
-		Bungee_Stretcher_synthesiseGrain,
-		Bungee_Stretcher_isFlushed,
-	};
-}
-
 namespace Bungee {
 
-Basic::Basic(SampleRates sampleRates, int channelCount, int log2SynthesisHopOverride) :
+Internal::Stretcher::Stretcher(SampleRates sampleRates, int channelCount, int log2SynthesisHopOverride) :
 	Timing(sampleRates, log2SynthesisHopOverride),
 	transforms(Fourier::transforms()),
 	input(log2SynthesisHop, channelCount, *transforms),
@@ -93,7 +21,7 @@ Basic::Basic(SampleRates sampleRates, int channelCount, int log2SynthesisHopOver
 		grain = std::make_unique<Grain>(log2SynthesisHop, channelCount);
 }
 
-InputChunk Basic::specifyGrain(const Request &request)
+InputChunk Internal::Stretcher::specifyGrain(const Request &request, double bufferStartPosition)
 {
 	const Assert::FloatingPointExceptions floatingPointExceptions(0);
 
@@ -101,10 +29,10 @@ InputChunk Basic::specifyGrain(const Request &request)
 
 	auto &grain = grains[0];
 	auto &previous = grains[1];
-	return grain.specify(request, previous, sampleRates, log2SynthesisHop);
+	return grain.specify(request, previous, sampleRates, log2SynthesisHop, bufferStartPosition);
 }
 
-void Basic::analyseGrain(const float *data, std::ptrdiff_t stride)
+void Internal::Stretcher::analyseGrain(const float *data, std::ptrdiff_t stride, int muteFrameCountHead, int muteFrameCountTail)
 {
 	const Assert::FloatingPointExceptions floatingPointExceptions(FE_INEXACT | FE_UNDERFLOW | FE_DENORMALOPERAND);
 
@@ -112,10 +40,11 @@ void Basic::analyseGrain(const float *data, std::ptrdiff_t stride)
 	grain.validBinCount = 0;
 	if (grain.valid())
 	{
-		auto m = grain.inputChunkMap(data, stride);
-		auto ref = grain.resampleInput(m, 8 << log2SynthesisHop);
+		auto m = grain.inputChunkMap(data, stride, muteFrameCountHead, muteFrameCountTail);
 
-		auto log2TransformLength = input.applyAnalysisWindow(ref);
+		auto ref = grain.resampleInput(m, 8 << log2SynthesisHop, muteFrameCountHead, muteFrameCountTail);
+
+		auto log2TransformLength = input.applyAnalysisWindow(ref, muteFrameCountHead, muteFrameCountTail);
 
 		transforms->forward(log2TransformLength, input.windowedInput, grain.transformed);
 
@@ -139,7 +68,7 @@ void Basic::analyseGrain(const float *data, std::ptrdiff_t stride)
 	}
 }
 
-void Basic::synthesiseGrain(OutputChunk &outputChunk)
+void Internal::Stretcher::synthesiseGrain(OutputChunk &outputChunk)
 {
 	const Assert::FloatingPointExceptions floatingPointExceptions(FE_INEXACT);
 
@@ -178,4 +107,12 @@ void Basic::synthesiseGrain(OutputChunk &outputChunk)
 	outputChunk.request[OutputChunk::end] = &grains[1].request;
 }
 
+extern const char *versionDescription;
 } // namespace Bungee
+
+const Bungee::Functions *getFunctionsBungeeBasic()
+{
+	static const char *edition = "Basic";
+	static const Bungee::Internal::Functions<Bungee::Internal::Stretcher, &edition, &Bungee::versionDescription> functions{};
+	return &functions;
+}
