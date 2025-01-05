@@ -6,7 +6,7 @@
 #include "Assert.h"
 #include "Fourier.h"
 
-#include <Eigen/Dense>
+#include <Eigen/Core>
 
 namespace Bungee {
 

@@ -5,7 +5,7 @@
 
 #include "Assert.h"
 
-#include <Eigen/Dense>
+#include <Eigen/Core>
 
 #include <algorithm>
 #include <complex>

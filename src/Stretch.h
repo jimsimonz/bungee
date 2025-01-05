@@ -6,7 +6,7 @@
 #include "Assert.h"
 #include "Phase.h"
 
-#include <Eigen/Dense>
+#include <Eigen/Core>
 #include <cstdint>
 
 namespace Bungee::Stretch {

@@ -9,7 +9,7 @@
 
 #include "bungee/Bungee.h"
 
-#include <Eigen/Dense>
+#include <Eigen/Core>
 
 #include <initializer_list>
 

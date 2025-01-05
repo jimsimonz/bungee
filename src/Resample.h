@@ -8,7 +8,7 @@
 
 #include "bungee/Bungee.h"
 
-#include <Eigen/Dense>
+#include <Eigen/Core>
 
 #include <type_traits>
 

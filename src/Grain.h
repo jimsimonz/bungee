@@ -13,7 +13,7 @@
 #include "bungee/../src/log2.h"
 #include "bungee/Bungee.h"
 
-#include <Eigen/Dense>
+#include <Eigen/Core>
 
 #include <array>
 #include <complex>
