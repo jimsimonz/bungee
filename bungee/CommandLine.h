@@ -98,7 +98,6 @@ struct Processor
 	decltype(wavData.begin()) o;
 	SampleRates sampleRates;
 	int inputFrameCount;
-	int inputFramesPad;
 	int inputChannelStride;
 	int channelCount;
 	int bitsPerSample;
@@ -162,21 +161,20 @@ struct Processor
 
 		inputFrameCount = int(8 * wavData.size() / bitsPerSample / channelCount);
 
-		inputFramesPad = 1 << 12;
-		inputChannelStride = inputFramesPad + inputFrameCount + inputFramesPad;
+		inputChannelStride = inputFrameCount;
 		inputBuffer.resize(channelCount * inputChannelStride);
 
 		if (bitsPerSample == 16)
 		{
 			for (int i = 0; i < inputFrameCount; ++i)
 				for (int c = 0; c < channelCount; ++c)
-					inputBuffer[c * inputChannelStride + inputFramesPad + i] = toFloat(read<int16_t>(&wavData[(i * channelCount + c) * sizeof(int16_t)]));
+					inputBuffer[c * inputChannelStride + i] = toFloat(read<int16_t>(&wavData[(i * channelCount + c) * sizeof(int16_t)]));
 		}
 		else if (bitsPerSample == 32)
 		{
 			for (int i = 0; i < inputFrameCount; ++i)
 				for (int c = 0; c < channelCount; ++c)
-					inputBuffer[c * inputChannelStride + inputFramesPad + i] = toFloat(read<int32_t>(&wavData[(i * channelCount + c) * sizeof(int32_t)]));
+					inputBuffer[c * inputChannelStride + i] = toFloat(read<int32_t>(&wavData[(i * channelCount + c) * sizeof(int32_t)]));
 		}
 		else
 			fail("Please check your input file: only 16-bit and 32-bit PCM are supported");
@@ -229,32 +227,19 @@ struct Processor
 
 	const float *getInputAudio(InputChunk inputChunk) const
 	{
-		const float *audio = nullptr;
-		if (inputChunk.begin != inputChunk.end)
-		{
-			inputChunk.begin += inputFramesPad;
-			inputChunk.end += inputFramesPad;
-			if (inputChunk.begin < 0)
-			{
-				inputChunk.begin -= inputChunk.begin;
-				inputChunk.end -= inputChunk.begin;
-			}
-			else if (inputChunk.end > inputChannelStride)
-			{
-				inputChunk.begin -= inputChunk.end - inputChannelStride;
-				inputChunk.end -= inputChunk.end - inputChannelStride;
-			}
-			audio = &inputBuffer[inputChunk.begin];
-		}
-		return audio;
+		return inputBuffer.data() + inputChunk.begin;
 	}
 
 	void getInputAudio(float *p, int stride, int position, int length) const
 	{
-		const float *source = getInputAudio(InputChunk{position, position + length});
 		for (int c = 0; c < channelCount; ++c)
 			for (int i = 0; i < length; ++i)
-				p[c * stride + i] = source[c * inputChannelStride + i];
+			{
+				if (position + i >= 0 && position + i < inputFrameCount)
+					p[c * stride + i] = inputBuffer[c * inputChannelStride + position + i];
+				else
+					p[c * stride + i] = 0.f;
+			}
 	}
 
 	template <typename Sample>

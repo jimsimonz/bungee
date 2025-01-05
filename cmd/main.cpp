@@ -68,16 +68,6 @@ int main(int argc, const char *argv[])
 	else
 	{
 		// Regular pull API
-
-		{
-			// Fill the audio start and end padding with NaN so that it becomes obvious if  a problem
-			// with muteFrameCountHead/Tail cause Bungee to read from the out-of-bounds frames.
-			const auto n = processor.inputFramesPad * processor.channelCount;
-			const auto x = std::numeric_limits<float>::quiet_NaN();
-			std::fill(processor.inputBuffer.begin(), processor.inputBuffer.begin() + n, x);
-			std::fill(processor.inputBuffer.end() - n, processor.inputBuffer.end(), x);
-		}
-
 		for (bool done = false; !done;)
 		{
 			InputChunk inputChunk = stretcher.specifyGrain(request);
