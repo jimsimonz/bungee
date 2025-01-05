@@ -21,7 +21,7 @@ namespace Bungee::CommandLine {
 
 static void fail(const char *message)
 {
-	std::cerr << message << "\n";
+	std::cerr << "Fatal error: " << message << "\n";
 	exit(1);
 }
 
@@ -68,23 +68,26 @@ struct Parameters :
 			exit(0);
 		}
 
+		if (!unmatched().empty())
+			fail("unrecognised command parameter(s)");
+
 		if (!count("input"))
-			fail("No input file specified");
+			fail("no input file specified");
 
 		if (!count("output"))
-			fail("No output file specified");
+			fail("no output file specified");
 
 		const auto semitones = (*this)["pitch"].as<double>();
 		if (semitones < -48. || semitones > +48.)
-			fail("pitch must be in the range -48 to +48");
+			fail("pitch is outside of the range -48 to +48");
 		request.pitch = std::pow(2., semitones / 12);
 
 		request.speed = (*this)["speed"].as<double>();
 		if (std::abs(request.speed) > 100.)
-			fail("speed must be between -100 and +100");
+			fail("speed is outside of the range -100 and +100");
 
 		if ((*this)["push"].as<int>() && request.speed < 0.)
-			fail("when pushing speed must be positive");
+			fail("speed not greater than zero in 'push' mode");
 	}
 };
 
