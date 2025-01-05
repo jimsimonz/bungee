@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2024 Parabola Research Limited
+// Copyright (C) 2020-2025 Parabola Research Limited
 // SPDX-License-Identifier: MPL-2.0
 
 #include "Fourier.h"

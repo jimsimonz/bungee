@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2024 Parabola Research Limited
+// Copyright (C) 2020-2025 Parabola Research Limited
 // SPDX-License-Identifier: MPL-2.0
 
 #include "Assert.h"
@@ -9,14 +9,14 @@
 namespace Bungee::Assert {
 
 #if BUNGEE_SELF_TEST
-#ifndef BUNGEE_ASSERT_FAIL_EXTERNAL
+#	ifndef BUNGEE_ASSERT_FAIL_EXTERNAL
 void fail(int level, const char *message, const char *file, int line)
 {
 	std::cerr << "Failed: BUNGEE_ASSERT" << level << "(" << message << ") "
 			  << " at (" << file << ":" << line << ")\n";
 	std::raise(SIGABRT);
 }
-#endif
+#	endif
 
 FloatingPointExceptions::FloatingPointExceptions(int allowed) :
 	allowed(allowed)
