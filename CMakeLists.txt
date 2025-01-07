@@ -30,6 +30,7 @@ target_link_libraries(bungee_static PRIVATE kissfft)
 
 # Bungee library target: "bungee_shared"
 if (BUNGEE_BUILD_SHARED_LIBRARY)
+  set(CMAKE_POSITION_INDEPENDENT_CODE ON)
   add_library(bungee_shared SHARED $<TARGET_PROPERTY:bungee_static,SOURCES>)
   target_include_directories(bungee_shared PRIVATE $<TARGET_PROPERTY:bungee_static,INCLUDE_DIRECTORIES>)
   target_compile_options(bungee_shared PRIVATE $<TARGET_PROPERTY:bungee_static,COMPILE_OPTIONS>)
