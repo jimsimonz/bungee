@@ -10,6 +10,3 @@
 	path = submodules/cxxopts
 	url = https://github.com/jarro2783/cxxopts.git
 	shallow = true
-[submodule "submodules/ios-cmake"]
-	path = submodules/ios-cmake
-	url = https://github.com/leetal/ios-cmake.git

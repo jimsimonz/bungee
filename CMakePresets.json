@@ -88,45 +88,26 @@
             "hidden": true,
             "inherits": "base",
             "generator": "Xcode",
-            "toolchainFile": "${sourceDir}/submodules/ios-cmake/ios.toolchain.cmake",
             "cacheVariables": {
                 "CMAKE_CONFIGURATION_TYPES": "Release",
-                "NAMED_LANGUAGE_SUPPORT": "ON",
-                "ENABLE_BITCODE": "OFF",
-                "ENABLE_ARC": "ON",
-                "ENABLE_VISIBILITY": "OFF",
-                "ENABLE_STRICT_TRY_COMPILE": "OFF"
+                "CMAKE_XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER": "com.parabolaresearch.bungee",
+                "CMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED": "NO"
             }
         },
         {
             "name": "apple-mac",
             "inherits": "apple",
             "cacheVariables": {
-                "PLATFORM": "MAC_UNIVERSAL"
+                "CMAKE_SYSTEM_NAME": "Darwin",
+                "CMAKE_OSX_ARCHITECTURES": "x86_64;arm64",
+                "CMAKE_OSX_DEPLOYMENT_TARGET": "12.0"
             }
         },
         {
             "name": "apple-ios",
-            "hidden": true,
             "inherits": "apple",
             "cacheVariables": {
-                "DEPLOYMENT_TARGET": "12.0",
-                "CMAKE_XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER": "com.parabolaresearch.bungee",
-                "CMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED": "NO"
-            }
-        },
-        {
-            "name": "apple-ios-arm64",
-            "inherits": "apple-ios",
-            "cacheVariables": {
-                "PLATFORM": "OS64"
-            }
-        },
-        {
-            "name": "apple-ios-x86_64",
-            "inherits": "apple-ios",
-            "cacheVariables": {
-                "PLATFORM": "SIMULATOR64"
+                "CMAKE_SYSTEM_NAME": "iOS"
             }
         }
     ]

@@ -3,14 +3,17 @@
 
 #include "Assert.h"
 
+#include <cstdio>
+#include <cstdlib>
+
 namespace Bungee::Assert {
 
 #if BUNGEE_SELF_TEST
 #	ifndef BUNGEE_ASSERT_FAIL_EXTERNAL
 void fail(int level, const char *message, const char *file, int line)
 {
-	Bungee_log_message("Failed: BUNGEE_ASSERT %d(%s)  at (%s: %d)\n", level, message, file, line);
-	std::raise(SIGABRT);
+	fprintf(stderr, "Failed: BUNGEE_ASSERT %d(%s)  at (%s: %d)\n", level, message, file, line);
+	std::abort();
 }
 #	endif
 
