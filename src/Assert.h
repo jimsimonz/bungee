@@ -5,6 +5,8 @@
 
 #include <cfenv>
 #include <complex>
+#include <cstdarg>
+#include <cstdio>
 #include <cstdlib>
 #include <vector>
 
@@ -56,6 +58,16 @@ struct FloatingPointExceptions
 #else
 	inline FloatingPointExceptions(int) {}
 #endif
+};
+
+struct Log
+{
+	int maxLevel = 0;
+	int expected = 0;
+
+	void log(int level, const char *format, ...);
+
+	void checkCallSequence(int called);
 };
 
 static constexpr auto active = BUNGEE_SELF_TEST == 2;

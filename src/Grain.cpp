@@ -3,12 +3,15 @@
 
 #include "Grain.h"
 #include "Fourier.h"
+#include "Instrumentation.h"
 
 #include "bungee/Bungee.h"
 
 #include <limits>
 
 namespace Bungee {
+
+using namespace Internal;
 
 Grain::Grain(int log2SynthesisHop, int channelCount) :
 	log2TransformLength(log2SynthesisHop + 3),
@@ -35,6 +38,10 @@ InputChunk Grain::specify(const Request &r, Grain &previous, SampleRates sampleR
 	const auto unitHop = (1 << log2SynthesisHop) * resampleOperations.setup(sampleRates, request.pitch);
 
 	requestHop = request.position - previous.request.position;
+
+	if (!std::isnan(request.speed) && !std::isnan(requestHop) && std::abs(request.speed * unitHop - requestHop) > 1.)
+		Instrumentation::log("specifyGrain: speed=%f implies hop of %f/%f but position has advanced by %f/%f since previous grain", request.speed, request.speed * unitHop, sampleRates.input, requestHop, sampleRates.input);
+
 	if (std::isnan(requestHop) || request.reset)
 		requestHop = request.speed * unitHop;
 

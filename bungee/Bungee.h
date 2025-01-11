@@ -62,6 +62,7 @@ struct Functions
 	const char *(*version)();
 	void *(*create)(struct SampleRates sampleRates, int channelCount, int log2SynthesisHopOverride);
 	void (*destroy)(void *implementation);
+	void (*enableInstrumentation)(void *implementation, int enable);
 	int (*maxInputFrameCount)(const void *implementation);
 	void (*preroll)(const void *implementation, struct Request *request);
 	void (*next)(const void *implementation, struct Request *request);
@@ -121,6 +122,13 @@ struct Stretcher
 	inline ~Stretcher()
 	{
 		functions->destroy(state);
+	}
+
+	// If called with a true parameter, enables verbose diagnostics and checks that report to
+	// the system log file on iOS, Mac and Android, or to stderr on other platforms.
+	inline void enableInstrumentation(bool enable)
+	{
+		functions->enableInstrumentation(state, enable);
 	}
 
 	// Returns the largest number of frames that might be requested by specifyGrain()

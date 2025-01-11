@@ -14,10 +14,23 @@ struct Input
 {
 	Eigen::ArrayXf window;
 	Eigen::ArrayXXf windowedInput;
+	Eigen::ArrayXXf windowedInputPrevious;
+	float scale;
+
+	Input() {}
 
 	Input(int log2SynthesisHop, int channelCount, Fourier::Transforms &transforms);
 
+	// returns transformLength
 	int applyAnalysisWindow(const Eigen::Ref<const Eigen::ArrayXXf> &input, int muteFrameCountHead, int muteFrameCountTail);
+
+	void checkOverlap(int analysisHop);
 };
 
 } // namespace Bungee
+
+struct Bungee_InputCheck
+{
+	Bungee::Input *input;
+};
+

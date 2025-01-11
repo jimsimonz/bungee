@@ -4,6 +4,8 @@
 #define BUNGEE_BASIC_CPP
 
 #include "Stretcher.h"
+#include "Assert.h"
+#include "Instrumentation.h"
 #include "Resample.h"
 #include "Synthesis.h"
 #include "log2.h"
@@ -21,22 +23,38 @@ Internal::Stretcher::Stretcher(SampleRates sampleRates, int channelCount, int lo
 		grain = std::make_unique<Grain>(log2SynthesisHop, channelCount);
 }
 
+void Internal::Stretcher::enableInstrumentation(bool enable)
+{
+	instrumentation.enabled = enable;
+}
+
 InputChunk Internal::Stretcher::specifyGrain(const Request &request, double bufferStartPosition)
 {
+	Instrumentation::Call call(instrumentation, 0);
+
 	const Assert::FloatingPointExceptions floatingPointExceptions(0);
 
 	grains.rotate();
 
 	auto &grain = grains[0];
 	auto &previous = grains[1];
+
 	return grain.specify(request, previous, sampleRates, log2SynthesisHop, bufferStartPosition);
 }
 
 void Internal::Stretcher::analyseGrain(const float *data, std::ptrdiff_t stride, int muteFrameCountHead, int muteFrameCountTail)
 {
+	Instrumentation::Call call(instrumentation, 1);
+
 	const Assert::FloatingPointExceptions floatingPointExceptions(FE_INEXACT | FE_UNDERFLOW | FE_DENORMALOPERAND);
 
 	auto &grain = grains[0];
+
+	Instrumentation::log("analyseGrain: position=%f speed=%f pitch=%f reset=%s data=%p stride=%d mute=%d:%d", grain.request.position, grain.request.speed, grain.request.pitch, grain.request.reset ? "true" : "false", data, stride, muteFrameCountHead, muteFrameCountTail);
+
+	grain.muteFrameCountHead = muteFrameCountHead;
+	grain.muteFrameCountTail = muteFrameCountTail;
+
 	grain.validBinCount = 0;
 	if (grain.valid())
 	{
@@ -45,6 +63,8 @@ void Internal::Stretcher::analyseGrain(const float *data, std::ptrdiff_t stride,
 		auto ref = grain.resampleInput(m, 8 << log2SynthesisHop, muteFrameCountHead, muteFrameCountTail);
 
 		auto log2TransformLength = input.applyAnalysisWindow(ref, muteFrameCountHead, muteFrameCountTail);
+
+		input.checkOverlap(grain.continuous ? grain.analysis.hop : std::numeric_limits<int>::max());
 
 		transforms->forward(log2TransformLength, input.windowedInput, grain.transformed);
 
@@ -70,6 +90,8 @@ void Internal::Stretcher::analyseGrain(const float *data, std::ptrdiff_t stride,
 
 void Internal::Stretcher::synthesiseGrain(OutputChunk &outputChunk)
 {
+	Instrumentation::Call call(instrumentation, 2);
+
 	const Assert::FloatingPointExceptions floatingPointExceptions(FE_INEXACT);
 
 	auto &grain = grains[0];

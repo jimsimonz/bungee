@@ -9,6 +9,7 @@
 #include "Phase.h"
 #include "Stretch.h"
 #include "Window.h"
+#include "Instrumentation.h"
 
 #include "bungee/../src/log2.h"
 #include "bungee/Bungee.h"
@@ -41,6 +42,8 @@ struct Grain
 	bool continuous{};
 	int passthrough{};
 	int validBinCount{};
+	int muteFrameCountHead{};
+	int muteFrameCountTail{};
 
 	Resample::Operations resampleOperations{};
 
@@ -75,6 +78,12 @@ struct Grain
 
 	auto inputChunkMap(const float *data, std::ptrdiff_t stride, int &muteFrameCountHead, int &muteFrameCountTail)
 	{
+		if (!data && muteFrameCountHead + muteFrameCountTail < inputChunk.end - inputChunk.begin)
+		{
+			Internal::Instrumentation::log("analyseGrain: data==nullptr but we need valid audio input for this frame");
+			std::abort();
+		}
+
 		typedef Eigen::OuterStride<Eigen::Dynamic> Stride;
 		typedef Eigen::Map<Eigen::ArrayXXf, 0, Stride> Map;
 

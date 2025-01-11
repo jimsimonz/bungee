@@ -3,11 +3,14 @@
 
 #include "Input.h"
 #include "Grain.h"
+#include "Instrumentation.h"
 #include "log2.h"
 
 #include <numbers>
 
 namespace Bungee {
+
+using namespace Internal;
 
 namespace {
 static constexpr float pi = std::numbers::pi_v<float>;
@@ -62,7 +65,35 @@ int Input::applyAnalysisWindow(const Eigen::Ref<const Eigen::ArrayXXf> &input, i
 		windowedInput.bottomRows(muteTail).setZero();
 	}
 
+	scale = window[0];
+
 	return Bungee::log2((int)windowedInput.rows());
 }
 
+void Input::checkOverlap(int analysisHop)
+{
+	if (Instrumentation::threadLocal->enabled)
+	{
+		const auto rows = windowedInput.rows();
+		const auto cols = windowedInput.cols();
+
+		Eigen::ArrayXXf input(rows, cols);
+		input.topRows(rows / 2) = windowedInput.bottomRows(rows / 2);
+		input.bottomRows(rows / 2) = windowedInput.topRows(rows / 2);
+
+		const auto overlap = input.rows() - std::abs(analysisHop);
+		if (overlap > 0 && windowedInputPrevious.rows())
+		{
+			const auto current = input.middleRows(std::max(0, -analysisHop), overlap);
+			const auto previous = windowedInputPrevious.middleRows(std::max(0, analysisHop), overlap);
+			const auto error = current * previous;
+			const auto metric = error.minCoeff() / (-1e-3f * scale * scale);
+
+			if (metric > 1.f)
+				Instrumentation::log("POSSIBLE INPUT PROBLEM: audio correlates poorly with that of previous grain (overlap=%d metric=%f)", overlap, metric);
+		}
+
+		windowedInputPrevious = input;
+	}
+}
 } // namespace Bungee

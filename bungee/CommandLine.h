@@ -46,6 +46,7 @@ struct Options :
 			;
 		add_options("Developer / Debug") //
 			("push", "input push chunk size (0 for default input pull operation)", cxxopts::value<int>()->default_value("0")) //
+			("instrumentation", "report useful diagnostic information to system log") //
 			;
 		add_options(helpGroups.emplace_back("Help")) //
 			("h,help", "display this message") //

@@ -3,15 +3,17 @@
 
 #pragma once
 
-#include "Fourier.h"
+#include "Assert.h"
 #include "Grains.h"
 #include "Input.h"
 #include "Output.h"
 #include "Timing.h"
+#include "Instrumentation.h"
 
 #include <memory>
 
 namespace Bungee::Internal {
+
 
 struct Stretcher :
 	Timing
@@ -20,8 +22,12 @@ struct Stretcher :
 	Input input;
 	Grains grains;
 	Output output;
+	Eigen::ArrayXXf previousWindowedInput;
+	Instrumentation instrumentation;
 
 	Stretcher(SampleRates sampleRates, int channelCount, int log2SynthesisHopOverride);
+
+	void enableInstrumentation(bool enable);
 
 	InputChunk specifyGrain(const Request &request, double bufferStartPosition);
 
@@ -42,6 +48,7 @@ struct Functions :
 		version = []() { return *v; };
 		create = [](SampleRates sampleRates, int channelCount, int log2SynthesisHop) { return (void *)new S(sampleRates, channelCount, log2SynthesisHop); };
 		destroy = [](void *stretcher) { delete reinterpret_cast<S *>(stretcher); };
+		enableInstrumentation = [](void *stretcher, int enable) { reinterpret_cast<S *>(stretcher)->enableInstrumentation(enable); };
 		maxInputFrameCount = [](const void *stretcher) { return reinterpret_cast<const S *>(stretcher)->maxInputFrameCount(true); };
 		preroll = [](const void *stretcher, Request *request) { reinterpret_cast<const S *>(stretcher)->preroll(*request); };
 		next = [](const void *stretcher, Request *request) { reinterpret_cast<const S *>(stretcher)->next(*request); };
