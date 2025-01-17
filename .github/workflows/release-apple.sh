@@ -18,7 +18,8 @@ for PRESET in \
         -D BUNGEE_VERSION=$1
     cmake \
         --build builds/${PRESET} \
-        --config Release
+        --config Release \
+        -j 3
     cmake \
         --install builds/${PRESET}
 done
