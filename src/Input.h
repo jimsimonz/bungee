@@ -23,8 +23,6 @@ struct Input
 
 	// returns transformLength
 	int applyAnalysisWindow(const Eigen::Ref<const Eigen::ArrayXXf> &input, int muteFrameCountHead, int muteFrameCountTail);
-
-	void checkOverlap(int analysisHop);
 };
 
 } // namespace Bungee
@@ -33,4 +31,3 @@ struct Bungee_InputCheck
 {
 	Bungee::Input *input;
 };
-

@@ -82,6 +82,44 @@ InputChunk Grain::specify(const Request &r, Grain &previous, SampleRates sampleR
 	}
 }
 
+void Grain::overlapCheck(Eigen::Ref<Eigen::ArrayXXf> input, int muteFrameCountHead, int muteFrameCountTail, const Grain &previous)
+{
+	const auto frameCount = inputChunk.end - inputChunk.begin;
+	const auto activeRows = frameCount - muteFrameCountHead - muteFrameCountTail;
+
+	inputCopy.resize(frameCount, input.cols());
+
+	inputCopy.topRows(muteFrameCountHead).setZero();
+	inputCopy.middleRows(muteFrameCountHead, activeRows) = input.middleRows(muteFrameCountHead, activeRows);
+	inputCopy.bottomRows(muteFrameCountTail).setZero();
+
+	if (inputCopy.hasNaN())
+	{
+		Instrumentation::log("Bungee: NaN detected in input audio");
+		std::abort();
+	}
+
+	const auto overlapStart = std::max(inputChunk.begin, previous.inputChunk.begin);
+	const auto overlapEnd = std::min(inputChunk.end, previous.inputChunk.end);
+	const auto overlapFrames = overlapEnd - overlapStart;
+
+	if (overlapFrames > 0 && previous.inputCopy.rows() > 0)
+	{
+		const auto overlapCurrent = inputCopy.middleRows(overlapStart - inputChunk.begin, overlapFrames);
+		const auto overlapPrevious = previous.inputCopy.middleRows(overlapStart - previous.inputChunk.begin, overlapFrames);
+
+		if (!(overlapCurrent == overlapPrevious).all())
+		{
+			Instrumentation::log("FATAL: the %s %d frames of this grain's input audio chunk are different to the %s %d frames of the previous grain's audio audio input chunk",
+				overlapStart == inputChunk.begin ? "first" : "last",
+				overlapFrames,
+				overlapStart == inputChunk.begin ? "last" : "first",
+				overlapFrames);
+			std::abort();
+		}
+	}
+}
+
 Eigen::Ref<Eigen::ArrayXXf> Grain::resampleInput(Eigen::Ref<Eigen::ArrayXXf> input, int log2WindowLength, int &muteFrameCountHead, int &muteFrameCountTail)
 {
 	if (resampleOperations.input.function)
@@ -102,4 +140,5 @@ Eigen::Ref<Eigen::ArrayXXf> Grain::resampleInput(Eigen::Ref<Eigen::ArrayXXf> inp
 		return input;
 	}
 }
+
 } // namespace Bungee

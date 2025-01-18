@@ -23,7 +23,8 @@ int main(int argc, const char *argv[])
 
 	Bungee::Stretcher<Edition> stretcher(processor.sampleRates, processor.channelCount);
 
-	stretcher.enableInstrumentation(parameters["instrumentation"].count() != 0);
+	if (parameters["instrumentation"].count() != 0)
+		stretcher.enableInstrumentation(true);
 
 	processor.restart(request);
 	stretcher.preroll(request);

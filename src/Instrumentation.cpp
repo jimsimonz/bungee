@@ -8,11 +8,11 @@
 #elif defined(__APPLE__)
 #	include <os/log.h>
 #else
-#include <iostream>
+#	include <iostream>
 #endif
 
-#include <cstdlib>
 #include <cstdarg>
+#include <cstdlib>
 
 namespace Bungee::Internal {
 
@@ -58,6 +58,5 @@ Instrumentation::Call::~Call()
 {
 	threadLocal = nullptr;
 }
-
 
 } // namespace Bungee::Internal

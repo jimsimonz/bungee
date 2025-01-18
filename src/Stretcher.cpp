@@ -49,6 +49,7 @@ void Internal::Stretcher::analyseGrain(const float *data, std::ptrdiff_t stride,
 	const Assert::FloatingPointExceptions floatingPointExceptions(FE_INEXACT | FE_UNDERFLOW | FE_DENORMALOPERAND);
 
 	auto &grain = grains[0];
+	const auto &previous = grains[1];
 
 	Instrumentation::log("analyseGrain: position=%f speed=%f pitch=%f reset=%s data=%p stride=%d mute=%d:%d", grain.request.position, grain.request.speed, grain.request.pitch, grain.request.reset ? "true" : "false", data, stride, muteFrameCountHead, muteFrameCountTail);
 
@@ -58,13 +59,11 @@ void Internal::Stretcher::analyseGrain(const float *data, std::ptrdiff_t stride,
 	grain.validBinCount = 0;
 	if (grain.valid())
 	{
-		auto m = grain.inputChunkMap(data, stride, muteFrameCountHead, muteFrameCountTail);
+		auto m = grain.inputChunkMap(data, stride, muteFrameCountHead, muteFrameCountTail, previous);
 
 		auto ref = grain.resampleInput(m, 8 << log2SynthesisHop, muteFrameCountHead, muteFrameCountTail);
 
 		auto log2TransformLength = input.applyAnalysisWindow(ref, muteFrameCountHead, muteFrameCountTail);
-
-		input.checkOverlap(grain.continuous ? grain.analysis.hop : std::numeric_limits<int>::max());
 
 		transforms->forward(log2TransformLength, input.windowedInput, grain.transformed);
 

@@ -4,12 +4,12 @@
 #pragma once
 
 #include "Fourier.h"
+#include "Instrumentation.h"
 #include "Output.h"
 #include "Partials.h"
 #include "Phase.h"
 #include "Stretch.h"
 #include "Window.h"
-#include "Instrumentation.h"
 
 #include "bungee/../src/log2.h"
 #include "bungee/Bungee.h"
@@ -57,6 +57,7 @@ struct Grain
 	Eigen::ArrayX<Phase::Type> delta;
 	std::vector<Partials::Partial> partials;
 	Resample::Padded inputResampled;
+	Eigen::ArrayXXf inputCopy;
 
 	Output::Segment segment;
 
@@ -76,7 +77,7 @@ struct Grain
 
 	void applyEnvelope();
 
-	auto inputChunkMap(const float *data, std::ptrdiff_t stride, int &muteFrameCountHead, int &muteFrameCountTail)
+	auto inputChunkMap(const float *data, std::ptrdiff_t stride, int &muteFrameCountHead, int &muteFrameCountTail, const Grain &previous)
 	{
 		if (!data && muteFrameCountHead + muteFrameCountTail < inputChunk.end - inputChunk.begin)
 		{
@@ -95,8 +96,13 @@ struct Grain
 		Map m((float *)data, frameCount, transformed.cols(), Stride(stride));
 		BUNGEE_ASSERT2(!m.middleRows(muteFrameCountHead, m.rows() - muteFrameCountHead - muteFrameCountTail).hasNaN());
 
+		if (Internal::Instrumentation::threadLocal->enabled)
+			overlapCheck(m, muteFrameCountHead, muteFrameCountTail, previous);
+
 		return m;
 	}
+
+	void overlapCheck(Eigen::Ref<Eigen::ArrayXXf> input, int muteFrameCountHead, int muteFrameCountTail, const Grain &previous);
 
 	Eigen::Ref<Eigen::ArrayXXf> resampleInput(Eigen::Ref<Eigen::ArrayXXf> input, int log2WindowLength, int &muteFrameCountHead, int &muteFrameCountTail);
 };
