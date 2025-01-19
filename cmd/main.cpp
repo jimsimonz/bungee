@@ -21,7 +21,7 @@ int main(int argc, const char *argv[])
 	CommandLine::Parameters parameters{options, argc, argv, request};
 	CommandLine::Processor processor{parameters, request};
 
-	Bungee::Stretcher<Edition> stretcher(processor.sampleRates, processor.channelCount);
+	Bungee::Stretcher<Edition> stretcher(processor.sampleRates, processor.channelCount, parameters["grain"].as<int>());
 
 	if (parameters["instrumentation"].count() != 0)
 		stretcher.enableInstrumentation(true);

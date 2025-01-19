@@ -38,20 +38,21 @@ void Instrumentation::log(const char *format, ...)
 #	else
 		fprintf(stderr, "Bungee: %s\n", message);
 #	endif
+		++threadLocal->logCount;
 	}
 #endif
 }
 
-Instrumentation::Call::Call(Instrumentation &instrumentation, int sequence)
+Instrumentation::Call::Call(Instrumentation *instrumentation, int sequence)
 {
-	threadLocal = &instrumentation;
-	if (sequence != instrumentation.expected)
+	threadLocal = instrumentation;
+	if (sequence != instrumentation->expected)
 	{
 		static const char *names[] = {"specifyGrain", "analyseGrain", "synthesiseGrain"};
-		log("FATAL: stretcher functions called in the wrong order: %s was called when expecting a call to %s", names[sequence], names[instrumentation.expected]);
+		log("FATAL: stretcher functions called in the wrong order: %s was called when expecting a call to %s", names[sequence], names[instrumentation->expected]);
 		std::abort();
 	}
-	instrumentation.expected = (sequence + 1) % 3;
+	instrumentation->expected = (sequence + 1) % 3;
 }
 
 Instrumentation::Call::~Call()

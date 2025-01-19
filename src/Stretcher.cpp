@@ -12,8 +12,8 @@
 
 namespace Bungee {
 
-Internal::Stretcher::Stretcher(SampleRates sampleRates, int channelCount, int log2SynthesisHopOverride) :
-	Timing(sampleRates, log2SynthesisHopOverride),
+Internal::Stretcher::Stretcher(SampleRates sampleRates, int channelCount, int log2SynthesisHopAdjust) :
+	Timing(sampleRates, log2SynthesisHopAdjust),
 	transforms(Fourier::transforms()),
 	input(log2SynthesisHop, channelCount, *transforms),
 	grains(4),
@@ -23,15 +23,9 @@ Internal::Stretcher::Stretcher(SampleRates sampleRates, int channelCount, int lo
 		grain = std::make_unique<Grain>(log2SynthesisHop, channelCount);
 }
 
-void Internal::Stretcher::enableInstrumentation(bool enable)
-{
-	instrumentation.enabled = enable;
-}
-
 InputChunk Internal::Stretcher::specifyGrain(const Request &request, double bufferStartPosition)
 {
-	Instrumentation::Call call(instrumentation, 0);
-
+	Instrumentation::Call call(this, 0);
 	const Assert::FloatingPointExceptions floatingPointExceptions(0);
 
 	grains.rotate();
@@ -44,13 +38,14 @@ InputChunk Internal::Stretcher::specifyGrain(const Request &request, double buff
 
 void Internal::Stretcher::analyseGrain(const float *data, std::ptrdiff_t stride, int muteFrameCountHead, int muteFrameCountTail)
 {
-	Instrumentation::Call call(instrumentation, 1);
-
+	Instrumentation::Call call(this, 1);
 	const Assert::FloatingPointExceptions floatingPointExceptions(FE_INEXACT | FE_UNDERFLOW | FE_DENORMALOPERAND);
 
 	auto &grain = grains[0];
 	const auto &previous = grains[1];
 
+	if (Instrumentation::threadLocal->logCount == 0)
+		Instrumentation::log("Stretcher: sampleRates=[%d, %d] channelCount=%d  synthesisHop=%d", sampleRates.input, sampleRates.output, input.windowedInput.cols(), 1 << log2SynthesisHop);
 	Instrumentation::log("analyseGrain: position=%f speed=%f pitch=%f reset=%s data=%p stride=%d mute=%d:%d", grain.request.position, grain.request.speed, grain.request.pitch, grain.request.reset ? "true" : "false", data, stride, muteFrameCountHead, muteFrameCountTail);
 
 	grain.muteFrameCountHead = muteFrameCountHead;
@@ -89,7 +84,7 @@ void Internal::Stretcher::analyseGrain(const float *data, std::ptrdiff_t stride,
 
 void Internal::Stretcher::synthesiseGrain(OutputChunk &outputChunk)
 {
-	Instrumentation::Call call(instrumentation, 2);
+	Instrumentation::Call call(this, 2);
 
 	const Assert::FloatingPointExceptions floatingPointExceptions(FE_INEXACT);
 

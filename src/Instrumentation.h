@@ -7,17 +7,23 @@ namespace Bungee::Internal {
 
 struct Instrumentation
 {
+	struct Call
+	{
+		Call(Instrumentation *instrumentation, int sequence);
+		~Call();
+	};
+
 	static thread_local Instrumentation *threadLocal;
 	bool enabled = BUNGEE_SELF_TEST >= 2;
 	int expected = 0;
+	int logCount = 0;
 
 	static void log(const char *format, ...);
 
-	struct Call
+	void enableInstrumentation(bool enable)
 	{
-		Call(Instrumentation &instrumentation, int sequence);
-		~Call();
-	};
+		this->enabled = enable;
+	}
 };
 
 } // namespace Bungee::Internal

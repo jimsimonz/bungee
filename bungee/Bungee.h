@@ -60,7 +60,7 @@ struct Functions
 {
 	const char *(*edition)();
 	const char *(*version)();
-	void *(*create)(struct SampleRates sampleRates, int channelCount, int log2SynthesisHopOverride);
+	void *(*create)(struct SampleRates sampleRates, int channelCount, int log2SynthesisHopAdjust);
 	void (*destroy)(void *implementation);
 	void (*enableInstrumentation)(void *implementation, int enable);
 	int (*maxInputFrameCount)(const void *implementation);
@@ -113,9 +113,15 @@ struct Stretcher
 		return Edition::getFunctions()->version();
 	}
 
-	inline Stretcher(SampleRates sampleRates, int channelCount, int log2SynthesisHopOverride = 0) :
+	// Initialises a stretcher instance with the specified sample rates and number of channels.
+	// The parameter log2SynthesisHopAdjust influences the granularity of the stretcher. In general, setting
+	// this parameter non-zero will reduce output audio quality but a value of -1 or +1 may be helpful
+	// under some circumstances.
+	// log2SynthesisHopAdjust=-1 doubles granular frequency, reducing latency and possibly improving weak transients.
+	// log2SynthesisHopAdjust=1 halves granular frequency, possibly benefiting dense tones.
+	inline Stretcher(SampleRates sampleRates, int channelCount, int log2SynthesisHopAdjust = 0) :
 		functions(Edition::getFunctions()),
-		state(functions->create(sampleRates, channelCount, log2SynthesisHopOverride))
+		state(functions->create(sampleRates, channelCount, log2SynthesisHopAdjust))
 	{
 	}
 

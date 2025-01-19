@@ -12,7 +12,7 @@ struct Timing
 	const int log2SynthesisHop;
 	const SampleRates sampleRates;
 
-	Timing(SampleRates sampleRates, int log2SynthesisHopOverride);
+	Timing(SampleRates sampleRates, int log2SynthesisHopAdjust);
 
 	int maxInputFrameCount(bool mayDownsampleInput) const;
 	int maxOutputFrameCount(bool mayUpsampleOutput) const;

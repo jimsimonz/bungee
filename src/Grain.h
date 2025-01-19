@@ -81,7 +81,7 @@ struct Grain
 	{
 		if (!data && muteFrameCountHead + muteFrameCountTail < inputChunk.end - inputChunk.begin)
 		{
-			Internal::Instrumentation::log("analyseGrain: data==nullptr but we need valid audio input for this frame");
+			Internal::Instrumentation::log("FATAL: data==nullptr but we need valid audio input for this frame");
 			std::abort();
 		}
 

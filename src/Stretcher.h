@@ -6,26 +6,25 @@
 #include "Assert.h"
 #include "Grains.h"
 #include "Input.h"
+#include "Instrumentation.h"
 #include "Output.h"
 #include "Timing.h"
-#include "Instrumentation.h"
 
 #include <memory>
 
 namespace Bungee::Internal {
 
-
 struct Stretcher :
-	Timing
+	Timing,
+	Instrumentation
 {
 	std::unique_ptr<Fourier::Transforms> transforms;
 	Input input;
 	Grains grains;
 	Output output;
 	Eigen::ArrayXXf previousWindowedInput;
-	Instrumentation instrumentation;
 
-	Stretcher(SampleRates sampleRates, int channelCount, int log2SynthesisHopOverride);
+	Stretcher(SampleRates sampleRates, int channelCount, int log2SynthesisHopAdjust);
 
 	void enableInstrumentation(bool enable);
 
@@ -48,7 +47,7 @@ struct Functions :
 		version = []() { return *v; };
 		create = [](SampleRates sampleRates, int channelCount, int log2SynthesisHop) { return (void *)new S(sampleRates, channelCount, log2SynthesisHop); };
 		destroy = [](void *stretcher) { delete reinterpret_cast<S *>(stretcher); };
-		enableInstrumentation = [](void *stretcher, int enable) { reinterpret_cast<S *>(stretcher)->enableInstrumentation(enable); };
+		enableInstrumentation = [](void *stretcher, int enable) { reinterpret_cast<S *>(stretcher)->Instrumentation::enableInstrumentation(enable); };
 		maxInputFrameCount = [](const void *stretcher) { return reinterpret_cast<const S *>(stretcher)->maxInputFrameCount(true); };
 		preroll = [](const void *stretcher, Request *request) { reinterpret_cast<const S *>(stretcher)->preroll(*request); };
 		next = [](const void *stretcher, Request *request) { reinterpret_cast<const S *>(stretcher)->next(*request); };

@@ -45,6 +45,7 @@ struct Options :
 			("p,pitch", "output pitch shift in semitones", cxxopts::value<double>()->default_value("0")) //
 			;
 		add_options("Developer / Debug") //
+			("grain", "increases [+1] or decreases [-1] grain duration by a factor of two", cxxopts::value<int>()->default_value("0")) //
 			("push", "input push chunk size (0 for default input pull operation)", cxxopts::value<int>()->default_value("0")) //
 			("instrumentation", "report useful diagnostic information to system log") //
 			;
@@ -85,7 +86,10 @@ struct Parameters :
 
 		request.speed = (*this)["speed"].as<double>();
 		if (std::abs(request.speed) > 100.)
-			fail("speed is outside of the range -100 and +100");
+			fail("speed is outside of the range -100 to +100");
+
+		if (std::abs((*this)["grain"].as<int>()) > 1)
+			fail("grain is outside of the range -1 to +1");
 
 		if ((*this)["push"].as<int>() && request.speed < 0.)
 			fail("speed not greater than zero in 'push' mode");
