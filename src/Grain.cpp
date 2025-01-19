@@ -110,12 +110,11 @@ void Grain::overlapCheck(Eigen::Ref<Eigen::ArrayXXf> input, int muteFrameCountHe
 
 		if (!(overlapCurrent == overlapPrevious).all())
 		{
-			Instrumentation::log("FATAL: the %s %d frames of this grain's input audio chunk are different to the %s %d frames of the previous grain's audio audio input chunk",
+			Instrumentation::log("UNEXPECTED INPUT: the %s %d frames of this grain's input audio chunk are different to the %s %d frames of the previous grain's audio audio input chunk",
 				overlapStart == inputChunk.begin ? "first" : "last",
 				overlapFrames,
 				overlapStart == inputChunk.begin ? "last" : "first",
 				overlapFrames);
-			std::abort();
 		}
 	}
 }
