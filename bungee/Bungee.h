@@ -115,7 +115,7 @@ struct Stretcher
 
 	// Initialises a stretcher instance with the specified sample rates and number of channels.
 	// The parameter log2SynthesisHopAdjust influences the granularity of the stretcher. In general, setting
-	// this parameter non-zero will reduce output audio quality but a value of -1 or +1 may be helpful
+	// this parameter non-zero will reduce output audio quality but a value of -1 or +1 may be desirable
 	// under some circumstances.
 	// log2SynthesisHopAdjust=-1 doubles granular frequency, reducing latency and possibly improving weak transients.
 	// log2SynthesisHopAdjust=1 halves granular frequency, possibly benefiting dense tones.
@@ -169,10 +169,9 @@ struct Stretcher
 
 	// Begins processing the grain. The audio data should correspond to the range
 	// specified by specifyGrain's return value. After calling this function, call synthesiseGrain.
-	// The "muteFrame" parameters specify the number input frames that are unavailable at the
-	// start (muteFrameCountHead) or end (muteFrameCountTail) of the audio data. These frame
-	// ranges will not be read from the input buffer and instead a mute (zero-valued) audio range will
-	// be used as input.
+	// The "muteFrame" parameters specify a number of input frames that are unavailable at the
+	// start (muteFrameCountHead) and end (muteFrameCountTail) of the audio data. These frame
+	// ranges will not be read from the input buffer and mute, zero-valued frames will be used instead.
 	inline void analyseGrain(const float *data, intptr_t channelStride, int muteFrameCountHead = 0, int muteFrameCountTail = 0)
 	{
 		functions->analyseGrain(state, data, channelStride, muteFrameCountHead, muteFrameCountTail);
