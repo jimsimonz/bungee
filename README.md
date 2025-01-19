@@ -9,7 +9,7 @@ Bungee is unique in its controllability, allowing continually changing pitch and
 
 ## Features
 
-* Simple, fast, with good quality audio output (hear some [comparisons](https://bungee.parabolaresearch.com/compare.html) with other approaches)
+* Simple, fast, with good quality audio output (hear some [comparisons](https://bungee.parabolaresearch.com/compare-audio-stretch-tempo-pitch-change.html) with other approaches)
 * Resonably low latency (of the order of 20ms for speed and pitch controls and 40ms from audio input to output)
 * Frequency-domain phase-vocoder-based algorithm
 * Modern C++ for clean and resilient code
@@ -138,7 +138,7 @@ See this repo's [.gitmodules](.gitmodules) for versioned links to these projects
 
 Bungee Pro is a closed-source commercial audio library built on Bungee's API and core philosophy. It uses novel algorithms for sharp and clear professional-grade audio and runs at least as fast as Bungee, thanks to platform-specific performance optimisations.
 
-Try Bungee Pro [now in your browser](https://bungee.parabolaresearch.com/bungee-web-demo.html), see a [comparison](https://bungee.parabolaresearch.com/compare.html) with other techniques and consider licensing if your app would benefit from:
+Try Bungee Pro [now in your browser](https://bungee.parabolaresearch.com/change-audio-speed-pitch.html), see a [comparison](https://bungee.parabolaresearch.com/compare-audio-stretch-tempo-pitch-change.html) with other techniques and consider licensing if your app would benefit from:
 * Powerful, AI-enabled stretch algorithms adaptive to all genres of speech, music and sound with subjective transparency up to infinite time stretch
 * Novel frequency- and time-domain processing for crisp transients and presevation of tonal envelope, vocal and instrumental timbre
 * Performance optimisations for:
