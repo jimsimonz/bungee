@@ -20,7 +20,7 @@ Bungee is unique in its controllability, allowing continually changing pitch and
 
 Bungee's dependencies are managed as git submodules; so clone like this:
 ```
-git clone --recurse-submodules https://github.com/kupix/bungee
+git clone --recurse-submodules https://github.com/bungee-audio-stretch/bungee
 ```
 
 Use CMake to configure and build the bungee library and command-line executable:
