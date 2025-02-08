@@ -79,16 +79,16 @@ struct Grain
 
 	auto inputChunkMap(const float *data, std::ptrdiff_t stride, int &muteFrameCountHead, int &muteFrameCountTail, const Grain &previous)
 	{
-		if (!data && muteFrameCountHead + muteFrameCountTail < inputChunk.end - inputChunk.begin)
+		const auto frameCount = inputChunk.end - inputChunk.begin;
+
+		if (!data)
 		{
-			Internal::Instrumentation::log("FATAL: data==nullptr but we need valid audio input for this frame");
-			std::abort();
+			muteFrameCountHead = frameCount;
+			muteFrameCountTail = 0;
 		}
 
 		typedef Eigen::OuterStride<Eigen::Dynamic> Stride;
 		typedef Eigen::Map<Eigen::ArrayXXf, 0, Stride> Map;
-
-		const auto frameCount = inputChunk.end - inputChunk.begin;
 
 		muteFrameCountHead = std::clamp<int>(muteFrameCountHead, 0, frameCount);
 		muteFrameCountTail = std::clamp<int>(muteFrameCountTail, 0, frameCount);

@@ -72,12 +72,19 @@ InputChunk Grain::specify(const Request &r, Grain &previous, SampleRates sampleR
 	inputResampled.frameCount = 1 << log2TransformLength;
 
 	{
-		auto halfInputFrameCount = inputResampled.frameCount / 2;
+		int halfInputFrameCount = inputResampled.frameCount / 2;
 		if (resampleOperations.input.ratio != 1.f)
 			halfInputFrameCount = int(std::round(halfInputFrameCount / resampleOperations.input.ratio)) + 1;
-		inputChunk.begin = int(std::round(request.position - bufferStartPosition)) - halfInputFrameCount;
-		inputChunk.end = int(std::round(request.position - bufferStartPosition)) + halfInputFrameCount;
 
+		inputChunk.begin = -halfInputFrameCount;
+		inputChunk.end = +halfInputFrameCount;
+
+		if (std::isnan(request.position))
+			return InputChunk{};
+
+		const int offset = int(std::round(request.position - bufferStartPosition));
+		inputChunk.begin += offset;
+		inputChunk.end += offset;
 		return inputChunk;
 	}
 }
