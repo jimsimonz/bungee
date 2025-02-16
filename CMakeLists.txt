@@ -90,4 +90,9 @@ if (BUNGEE_BUILD_SHARED_LIBRARY)
     submodules/cxxopts/include/cxxopts.hpp
     DESTINATION ${CMAKE_INSTALL_PREFIX}/sample
   )
+
+get_property(BUNGEE_LIBRARY_OUTPUT_NAME TARGET bungee_library PROPERTY OUTPUT_NAME)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/libbungee.pc.in ${CMAKE_CURRENT_BINARY_DIR}/libbungee.pc @ONLY)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libbungee.pc DESTINATION ${CMAKE_INSTALL_PREFIX}/${BUNGEE_PRESET}/pkgconfig)
+
 endif()

@@ -3,9 +3,21 @@
 
 #pragma once
 
-#include <cstdint>
+#ifndef BUNGEE_VISIBILITY
+#	define BUNGEE_VISIBILITY
+#endif
 
+// This header file contains a C++ API and an equivalent C API.
+// Bungee is a C++ library first and users should prefer the C++ API if they are able to use it.
+#ifdef __cplusplus
+#	include <cstdint>
+#	define BUNGEE_PREFIX extern "C" BUNGEE_VISIBILITY const Bungee::Functions
 namespace Bungee {
+#else
+#	include <stdint.h>
+#	define BUNGEE_PREFIX BUNGEE_VISIBILITY const struct Functions
+#	define bool char
+#endif
 
 // An object of type Request is passed to the audio stretcher every time an audio grain is processed.
 struct Request
@@ -43,9 +55,10 @@ struct OutputChunk
 	float *data; // audio output data, not aligned and not interleaved
 	int frameCount;
 	intptr_t channelStride; // nth audio channel audio starts at data[n * channelStride]
-
+#ifdef __cplusplus
 	static constexpr int begin = 0, end = 1;
-	Request *request[2 /* 0=begin, 1=end */];
+#endif
+	const struct Request *request[2]; // request[0] corresponds to the first frame of data, request[1] corresponds to the frame after the last frame of data.
 };
 
 // Stretcher audio sample rates, in Hz
@@ -55,11 +68,12 @@ struct SampleRates
 	int output;
 };
 
-// This struct is not part of the API. It is necessary here to facilitate extern "C" linkage to shared libaries.
+// This struct is not part of the C++ API. It is necessary here to facilitate extern "C" linkage to shared libaries.
+// Users of the C API may use this struct to access the functions of the Bungee stretcher.
 struct Functions
 {
-	const char *(*edition)();
-	const char *(*version)();
+	const char *(*edition)(void);
+	const char *(*version)(void);
 	void *(*create)(struct SampleRates sampleRates, int channelCount, int log2SynthesisHopAdjust);
 	void (*destroy)(void *implementation);
 	void (*enableInstrumentation)(void *implementation, int enable);
@@ -72,17 +86,18 @@ struct Functions
 	bool (*isFlushed)(const void *implementation);
 };
 
-} // namespace Bungee
-
-#ifndef BUNGEE_VISIBILITY
-#	define BUNGEE_VISIBILITY
+#ifdef __cplusplus
+}
+#else
+#	undef bool
 #endif
 
-// These are not user-callable functions.  Instead, users should instantiate Stretcher<> and use its member functions.
-// These declarations are necessary here to facilitate extern "C" linkage to Bungee's shared libaries.
-extern "C" BUNGEE_VISIBILITY const Bungee::Functions *getFunctionsBungeeBasic();
-extern "C" BUNGEE_VISIBILITY const Bungee::Functions *getFunctionsBungeePro();
+// These are not part of the C++ API and exist primarily to facilitate extern "C" linkage to Bungee's shared libaries.
+// C++ users should instantiate Stretcher<>
+BUNGEE_PREFIX *getFunctionsBungeeBasic(void);
+BUNGEE_PREFIX *getFunctionsBungeePro(void);
 
+#ifdef __cplusplus
 namespace Bungee {
 
 // Stretcher<Basic> is the open-source implementation contained in this repository
@@ -194,3 +209,4 @@ struct Stretcher
 };
 
 } // namespace Bungee
+#endif
