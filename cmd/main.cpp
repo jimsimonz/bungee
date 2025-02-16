@@ -3,6 +3,7 @@
 
 #include <bungee/Bungee.h>
 #include <bungee/CommandLine.h>
+#include <bungee/Stream.h>
 
 int main(int argc, const char *argv[])
 {
@@ -26,51 +27,68 @@ int main(int argc, const char *argv[])
 	if (parameters["instrumentation"].count() != 0)
 		stretcher.enableInstrumentation(true);
 
-	processor.restart(request);
-	stretcher.preroll(request);
-
-	const int pushFrameCount = parameters["push"].as<int>();
-	if (pushFrameCount)
+	const int pushSampleCount = parameters["push"].as<int>();
+	if (pushSampleCount)
 	{
-		// This code exists only to demonstrate the usage of the Bungee stretcher with the Push::InputBuffer
-		// See the else part of the code for an example of the native "pull" API.
-		std::cout << "Using Push::InputBuffer with " << pushFrameCount << " frames per push\n";
+		// This code demonstrates the usage of the easier to use, positive-speed-only `Bungee::Stream` API.
+		// See the `else` branch for equivalent usage of the `Bungee::Stretcher` API.
 
-		InputChunk inputChunk = stretcher.specifyGrain(request);
+		const auto maxSpeed = request.speed;
 
-		Push::InputBuffer pushInputBuffer(stretcher.maxInputFrameCount() + pushFrameCount, processor.channelCount);
+		if (pushSampleCount < 0)
+			std::cout << "Using Bungee::Stream::process randomly with between 1 and " << -pushSampleCount << " samples per call\n";
+		else
+			std::cout << "Using Bungee::Stream::process with " << pushSampleCount << " samples per call\n";
 
-		pushInputBuffer.grain(inputChunk);
+		const int maxInputSampleCount = std::abs(pushSampleCount);
+		const int maxOutputSampleCount = std::ceil((maxInputSampleCount * processor.sampleRates.output) / (maxSpeed * processor.sampleRates.input));
+
+		CommandLine::Processor::OutputChunkBuffer outputChunkBuffer(maxOutputSampleCount, processor.channelCount);
+
+		Stream stream(stretcher, maxInputSampleCount, processor.channelCount);
+
+		std::vector<const float *> inputChannelPointers(processor.channelCount);
 
 		bool done = false;
-		for (int position = 0; !done; position += pushFrameCount)
+		for (int position = 0; !done;)
 		{
-			// Here we loop over segments of input audio, each with pushFrameCount audio frames.
+			// Here we loop over segments of input audio, and we control their lengths.
+			int inputSampleCount = pushSampleCount < 0 ? std::rand() % maxOutputSampleCount + 1 : pushSampleCount;
 
-			// First get pushFrameCount frames of audio from the input
-			processor.getInputAudio(pushInputBuffer.inputData(), pushInputBuffer.stride(), position, pushFrameCount);
+			for (int c = 0; c < processor.channelCount; ++c)
+				inputChannelPointers[c] = &processor.inputBuffer[position + c * processor.inputChannelStride];
 
-			// The following function and loop delivers pushFrameCount to Bungee
-			// Zero or more output audio chunks will be emitted and we concatenate these.
-			pushInputBuffer.deliver(pushFrameCount);
-			while (pushInputBuffer.inputFrameCountRequired() <= 0)
-			{
-				stretcher.analyseGrain(pushInputBuffer.outputData(), pushInputBuffer.stride());
+			if (inputSampleCount > processor.inputFrameCount - position)
+				if (position < processor.inputFrameCount)
+					inputSampleCount = processor.inputFrameCount - position; // shorter last segment of real audio
+				else
+					for (int c = 0; c < processor.channelCount; ++c)
+						inputChannelPointers[c] = nullptr; // indicates silent segment
 
-				OutputChunk outputChunk;
-				stretcher.synthesiseGrain(outputChunk);
+			const double outputSampleCountIdeal = (inputSampleCount * processor.sampleRates.output) / (request.speed * processor.sampleRates.input);
 
-				stretcher.next(request);
-				done = processor.write(outputChunk);
+			// This is the important line: it is a very simple streaming interface.
+			const auto outputSampleCountActual = stream.process(inputChannelPointers[0] ? inputChannelPointers.data() : nullptr, outputChunkBuffer.channelPointers.data(), inputSampleCount, outputSampleCountIdeal, request.pitch);
 
-				inputChunk = stretcher.specifyGrain(request);
-				pushInputBuffer.grain(inputChunk);
-			}
+			if (false)
+				std::cout << "current latency is " << stream.latency() / processor.sampleRates.input << "seconds\n";
+
+			const auto positionEnd = stream.outputPosition();
+			const auto positionBegin = positionEnd - outputSampleCountActual * (request.speed * processor.sampleRates.input / (processor.sampleRates.output));
+
+			auto outputChunk = outputChunkBuffer.outputChunk(outputSampleCountActual, positionBegin, positionEnd);
+			done = processor.write(outputChunk);
+
+			position += inputSampleCount;
 		}
 	}
 	else
 	{
-		// Regular pull API
+		// This code demonstrates the low-level, flexible and best performing `Bungee::Stretcher` API.
+
+		processor.restart(request);
+		stretcher.preroll(request);
+
 		for (bool done = false; !done;)
 		{
 			InputChunk inputChunk = stretcher.specifyGrain(request);

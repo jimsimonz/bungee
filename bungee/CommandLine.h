@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: MPL-2.0
 
 #include <bungee/Bungee.h>
-#include <bungee/Push.h>
 
 #define CXXOPTS_NO_EXCEPTIONS
 #include "cxxopts.hpp"
@@ -14,6 +13,7 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -46,7 +46,7 @@ struct Options :
 			;
 		add_options("Developer / Debug") //
 			("grain", "increases [+1] or decreases [-1] grain duration by a factor of two", cxxopts::value<int>()->default_value("0")) //
-			("push", "input push chunk size (0 for default input pull operation)", cxxopts::value<int>()->default_value("0")) //
+			("push", "input chunk size (0 for pull operation, negative for random push chunk size)", cxxopts::value<int>()->default_value("0")) //
 			("instrumentation", "report useful diagnostic information to system log") //
 			;
 		add_options(helpGroups.emplace_back("Help")) //
@@ -98,6 +98,42 @@ struct Parameters :
 
 struct Processor
 {
+	struct OutputChunkBuffer :
+		OutputChunk
+	{
+		std::vector<float> audio;
+		std::vector<float *> channelPointers;
+		Request request[2]{};
+
+		OutputChunkBuffer(int frameCount, int channelCount) :
+			OutputChunk{},
+			audio(frameCount * channelCount),
+			channelPointers(channelCount)
+		{
+			OutputChunk::request[0] = &request[0];
+			OutputChunk::request[1] = &request[1];
+
+			OutputChunk::data = audio.data();
+			OutputChunk::channelStride = frameCount;
+
+			for (int c = 0; c < channelCount; ++c)
+				channelPointers[c] = audio.data() + c * OutputChunk::channelStride;
+		}
+
+		OutputChunkBuffer(const OutputChunkBuffer &) = delete;
+		OutputChunkBuffer &operator=(const OutputChunkBuffer &) = delete;
+
+		const OutputChunk &outputChunk(int frameCount, double positionBegin, double positionEnd)
+		{
+			OutputChunk::frameCount = frameCount;
+			request[0].position = positionBegin;
+			request[1].position = positionEnd;
+			request[0].speed = 1.;
+			request[1].speed = 1.;
+			return *this;
+		}
+	};
+
 	std::vector<char> wavHeader;
 	std::vector<char> wavData;
 	decltype(wavData.begin()) o;
@@ -208,16 +244,15 @@ struct Processor
 
 	bool write(OutputChunk outputChunk)
 	{
-		double position[2];
-		position[OutputChunk::begin] = outputChunk.request[OutputChunk::begin]->position;
-		position[OutputChunk::end] = outputChunk.request[OutputChunk::end]->position;
+		const auto positionBegin = outputChunk.request[0]->position;
+		const auto positionEnd = outputChunk.request[1]->position;
 
-		if (!std::isnan(position[OutputChunk::begin]))
+		if (!std::isnan(positionBegin) && positionBegin != positionEnd)
 		{
-			double nPrerollInput = outputChunk.request[OutputChunk::begin]->speed < 0. ? position[OutputChunk::begin] - inputFrameCount + 1 : -position[OutputChunk::begin];
+			double nPrerollInput = outputChunk.request[0]->speed < 0. ? positionBegin - inputFrameCount + 1 : -positionBegin;
 			nPrerollInput = std::max(0, (int)std::round(nPrerollInput));
 
-			const int nPrerollOutput = (int)std::round(nPrerollInput * (outputChunk.frameCount / std::abs(position[OutputChunk::end] - position[OutputChunk::begin])));
+			const int nPrerollOutput = (int)std::round(nPrerollInput * (outputChunk.frameCount / std::abs(positionEnd - positionBegin)));
 
 			if (outputChunk.frameCount > nPrerollOutput)
 			{
