@@ -24,8 +24,7 @@ int main(int argc, const char *argv[])
 
 	Bungee::Stretcher<Edition> stretcher(processor.sampleRates, processor.channelCount, parameters["grain"].as<int>());
 
-	if (parameters["instrumentation"].count() != 0)
-		stretcher.enableInstrumentation(true);
+	stretcher.enableInstrumentation(parameters["instrumentation"].count() != 0);
 
 	const int pushSampleCount = parameters["push"].as<int>();
 	if (pushSampleCount)

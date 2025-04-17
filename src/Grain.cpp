@@ -39,8 +39,8 @@ InputChunk Grain::specify(const Request &r, Grain &previous, SampleRates sampleR
 
 	requestHop = request.position - previous.request.position;
 
-	if (!std::isnan(request.speed) && !std::isnan(requestHop) && std::abs(request.speed * unitHop - requestHop) > 1.)
-		Instrumentation::log("specifyGrain: speed=%f implies hop of %f/%f but position has advanced by %f/%f since previous grain", request.speed, request.speed * unitHop, sampleRates.input, requestHop, sampleRates.input);
+	if (!request.reset && !std::isnan(request.speed) && !std::isnan(requestHop) && std::abs(request.speed * unitHop - requestHop) > 1.)
+		Instrumentation::log("specifyGrain: speed=%f implies hop of %f/%d but position has advanced by %f/%d since previous grain", request.speed, request.speed * unitHop, sampleRates.input, requestHop, sampleRates.input);
 
 	if (std::isnan(requestHop) || request.reset)
 		requestHop = request.speed * unitHop;

@@ -96,7 +96,7 @@ struct Grain
 		Map m((float *)data, frameCount, transformed.cols(), Stride(stride));
 		BUNGEE_ASSERT2(!m.middleRows(muteFrameCountHead, m.rows() - muteFrameCountHead - muteFrameCountTail).hasNaN());
 
-		if (Internal::Instrumentation::threadLocal->enabled)
+		if (Internal::Instrumentation::threadLocal->enabled || Bungee::Assert::level)
 			overlapCheck(m, muteFrameCountHead, muteFrameCountTail, previous);
 
 		return m;

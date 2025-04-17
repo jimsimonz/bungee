@@ -14,7 +14,7 @@ struct Instrumentation
 	};
 
 	static thread_local Instrumentation *threadLocal;
-	bool enabled = BUNGEE_SELF_TEST >= 2;
+	bool enabled = false;
 	int expected = 0;
 	int logCount = 0;
 
