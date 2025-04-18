@@ -27,9 +27,9 @@ Input::Input(int log2SynthesisHop, int channelCount, Fourier::Transforms &transf
 
 int Input::applyAnalysisWindow(const Eigen::Ref<const Eigen::ArrayXXf> &input, int muteFrameCountHead, int muteFrameCountTail)
 {
-	const int half = window.rows() / 2;
+	const int half = (int)window.rows() / 2;
 	BUNGEE_ASSERT1(input.rows() % 2 == 0);
-	const int unused = std::max<int>(input.rows() / 2 - half, 0);
+	const int unused = std::max<int>((int)input.rows() / 2 - half, 0);
 	muteFrameCountHead -= unused;
 	muteFrameCountTail -= unused;
 

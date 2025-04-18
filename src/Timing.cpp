@@ -25,13 +25,13 @@ static constexpr auto maxPitchOctaves = 2;
 int Timing::maxInputFrameCount(bool mayDownsampleInput) const
 {
 	const auto max = (int64_t(sampleRates.input) << (maxPitchOctaves + log2SynthesisHop + 3)) / sampleRates.output;
-	return max + 1;
+	return int(max + 1);
 }
 
 int Timing::maxOutputFrameCount(bool mayUpsampleOutput) const
 {
 	const auto max = (int64_t(sampleRates.output) << (maxPitchOctaves + log2SynthesisHop)) / sampleRates.input;
-	return max + 1;
+	return int(max + 1);
 }
 
 double Timing::calculateInputHop(const Request &request) const
