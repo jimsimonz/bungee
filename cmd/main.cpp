@@ -58,11 +58,13 @@ int main(int argc, const char *argv[])
 				inputChannelPointers[c] = &processor.inputBuffer[position + c * processor.inputChannelStride];
 
 			if (inputSampleCount > processor.inputFrameCount - position)
+			{
 				if (position < processor.inputFrameCount)
 					inputSampleCount = processor.inputFrameCount - position; // shorter last segment of real audio
 				else
 					for (int c = 0; c < processor.channelCount; ++c)
 						inputChannelPointers[c] = nullptr; // indicates silent segment
+			}
 
 			const double outputSampleCountIdeal = (inputSampleCount * processor.sampleRates.output) / (request.speed * processor.sampleRates.input);
 

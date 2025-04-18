@@ -1,6 +1,7 @@
 set(BUNGEE_VERSION 0.0.0 CACHE STRING "Bungee version string")
 set(BUNGEE_SELF_TEST 0 CACHE STRING "Enable Bungee self tests (0=off, 1=fast, 2=full)")
 option(BUNGEE_BUILD_SHARED_LIBRARY "Build shared, dynamic Bungee library in addition to a static libary" ON)
+option(BUNGEE_INSTALL_FRAMEWORK "Install as a framework" OFF)
 set(BUNGEE_PRESET "" CACHE STRING "Name of the preset that we're building")
 
 if (BUNGEE_BUILD_SHARED_LIBRARY)
@@ -8,6 +9,7 @@ if (BUNGEE_BUILD_SHARED_LIBRARY)
 endif()
 
 cmake_minimum_required(VERSION 3.30...3.31)
+include(CheckCXXCompilerFlag)
 
 project(bungee VERSION ${BUNGEE_VERSION})
 set(CMAKE_CXX_STANDARD 20)
@@ -56,11 +58,16 @@ set(KISSFFT_PKGCONFIG OFF CACHE INTERNAL "" FORCE)
 set(KISSFFT_STATIC ON CACHE INTERNAL "" FORCE)
 set(KISSFFT_TEST OFF CACHE INTERNAL "" FORCE)
 set(KISSFFT_TOOLS OFF CACHE INTERNAL "" FORCE)
-add_subdirectory(submodules/kissfft EXCLUDE_FROM_ALL) # -Wcast-align
+add_subdirectory(submodules/kissfft EXCLUDE_FROM_ALL)
+
+CHECK_CXX_COMPILER_FLAG("-Wno-cast-align" SUPPORTS_WNO_CAST_ALIGN)
+if(SUPPORTS_WNO_CAST_ALIGN)
+  target_compile_options(kissfft PRIVATE -Wno-cast-align)
+endif()
 
 # Installation
 if (BUNGEE_BUILD_SHARED_LIBRARY)
-  if (APPLE)
+  if (BUNGEE_INSTALL_FRAMEWORK)
     set_target_properties(bungee_library PROPERTIES
       FRAMEWORK TRUE
       XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "iPhone Developer"
