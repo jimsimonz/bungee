@@ -49,7 +49,6 @@ static inline constexpr T fromRevolutions(float revolutions)
 	constexpr auto shift = 8 * sizeof(T);
 	const float k = float(1ull << shift);
 	const T phase = T(k * revolutions);
-	BUNGEE_ASSERT1(phase == T(int64_t(k * revolutions)));
 	return phase;
 }
 

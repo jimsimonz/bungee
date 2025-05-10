@@ -32,16 +32,22 @@ FloatingPointExceptions::FloatingPointExceptions(int allowed) :
 #	endif
 }
 
-FloatingPointExceptions::~FloatingPointExceptions()
+void FloatingPointExceptions::check() const
 {
 	BUNGEE_ASSERT1(!std::fetestexcept(~allowed & FE_INEXACT));
 	BUNGEE_ASSERT1(!std::fetestexcept(~allowed & FE_UNDERFLOW));
 	BUNGEE_ASSERT1(!std::fetestexcept(~allowed & FE_OVERFLOW));
 	BUNGEE_ASSERT1(!std::fetestexcept(~allowed & FE_DIVBYZERO));
 	BUNGEE_ASSERT1(!std::fetestexcept(~allowed & FE_INVALID));
+}
+
+FloatingPointExceptions::~FloatingPointExceptions()
+{
+	check();
 	auto success = !std::fesetenv(&original);
 	BUNGEE_ASSERT1(success);
 }
+
 #endif
 
 } // namespace Bungee::Assert

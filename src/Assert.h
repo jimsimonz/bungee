@@ -55,8 +55,11 @@ struct FloatingPointExceptions
 
 	FloatingPointExceptions(int allowed);
 	~FloatingPointExceptions();
+
+	void check() const;
 #else
 	inline FloatingPointExceptions(int) {}
+	inline void check() const {}
 #endif
 };
 
