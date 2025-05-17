@@ -32,8 +32,6 @@ BraceWrapping:
   BeforeElse: true
   AfterControlStatement: Always
 
-BracketAlignmentStyle: DontAlign
-
 FixNamespaceComments: true
 NamespaceIndentation: None
 
