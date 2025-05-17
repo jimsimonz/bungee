@@ -10,7 +10,7 @@
 #include <algorithm>
 #include <complex>
 #include <limits>
-#include <memory>
+#include <utility>
 #include <vector>
 
 namespace Bungee {
@@ -70,82 +70,116 @@ inline void resize(int log2TransformLength, int channelCount, T &array, int extr
 
 struct Transforms
 {
-	virtual ~Transforms() {}
-	virtual void prepareForward(int log2TransformLength) = 0;
-	virtual void prepareInverse(int log2TransformLength) = 0;
-	virtual void forward(int log2TransformLength, const Eigen::Ref<const Eigen::ArrayXXf> &t, Eigen::Ref<Eigen::ArrayXXcf> f) const = 0;
-	virtual void inverse(int log2TransformLength, Eigen::Ref<Eigen::ArrayXXf> t, const Eigen::Ref<const Eigen::ArrayXXcf> &f) const = 0;
+	void *p;
+	Transforms();
+	~Transforms();
+	void prepareForward(int log2TransformLength);
+	void prepareInverse(int log2TransformLength);
+	void forward(int log2TransformLength, const Eigen::Ref<const Eigen::ArrayXXf> &t, Eigen::Ref<Eigen::ArrayXXcf> f);
+	void inverse(int log2TransformLength, Eigen::Ref<Eigen::ArrayXXf> t, const Eigen::Ref<const Eigen::ArrayXXcf> &f);
 };
 
 // General case when an FFT implementation has different states for forward and reverse transforms of same size.
 template <class F, class I>
-struct KernelPair
+class KernelPair
 {
-	std::shared_ptr<F> f;
-	std::shared_ptr<I> i;
+	F *f{};
+	I *i{};
+
+	KernelPair(const KernelPair &) = delete;
+	KernelPair &operator=(const KernelPair &) = delete;
+
+public:
+	KernelPair() = default;
+	~KernelPair()
+	{
+		if (f)
+			delete f;
+		if (i)
+			delete i;
+	}
+
 	inline F *forward() const
 	{
-		return f.get();
+		return f;
 	}
+
 	inline I *inverse() const
 	{
-		return i.get();
+		return i;
 	}
-	void forward(F *x)
+	void make_forward(int log2TransformLength)
 	{
-		f.reset(x);
+		if (!f)
+			f = new F(log2TransformLength);
 	}
-	void inverse(I *x)
+
+	void make_inverse(int log2TransformLength)
 	{
-		i.reset(x);
+		if (!i)
+			i = new I(log2TransformLength);
 	}
 };
 
 // Special case when an FFT implementation can use the same state for forward and reverse transforms of same size.
 template <class T>
-struct KernelPair<T, T>
+class KernelPair<T, T>
 {
-	std::shared_ptr<T> t;
+	T *t{};
+
+	KernelPair(const KernelPair &) = delete;
+	KernelPair &operator=(const KernelPair &) = delete;
+
+public:
+	KernelPair() = default;
+	~KernelPair()
+	{
+		if (t)
+			delete t;
+	}
+
 	inline T *forward() const
 	{
-		return t.get();
+		return t;
 	}
+
 	inline T *inverse() const
 	{
-		return t.get();
+		return t;
 	}
-	void forward(T *x)
+
+	void make_forward(int log2TransformLength)
 	{
-		t.reset(x);
+		if (!t)
+			t = new T(log2TransformLength);
 	}
-	void inverse(T *x)
+
+	void make_inverse(int log2TransformLength)
 	{
-		t.reset(x);
+		if (!t)
+			t = new T(log2TransformLength);
 	}
 };
 
 template <class K, int log2MaxSize>
-struct Cache :
-	Transforms
+struct Cache
 {
 	typedef KernelPair<typename K::Forward, typename K::Inverse> Entry;
 	typedef std::array<Entry, log2MaxSize + 1> Table;
 
 	Table table;
 
-	void prepareForward(int log2TransformLength) override
+	inline void prepareForward(int log2TransformLength)
 	{
-		if (!table[log2TransformLength].forward())
-			table[log2TransformLength].forward(new typename K::Forward(log2TransformLength));
+		table[log2TransformLength].make_forward(log2TransformLength);
 	}
 
-	void prepareInverse(int log2TransformLength) override
+	inline void prepareInverse(int log2TransformLength)
 	{
-		if (!table[log2TransformLength].inverse())
-			table[log2TransformLength].inverse(new typename K::Inverse(log2TransformLength));
+		table[log2TransformLength].make_inverse(log2TransformLength);
 	}
 
-	void forward(int log2TransformLength, const Eigen::Ref<const Eigen::ArrayXXf> &t, Eigen::Ref<Eigen::ArrayXXcf> f) const override
+	inline void forward(int log2TransformLength, const Eigen::Ref<const Eigen::ArrayXXf> &t, Eigen::Ref<Eigen::ArrayXXcf> f) const
 	{
 		BUNGEE_ASSERT1(t.cols() == t.cols());
 		BUNGEE_ASSERT1(t.cols() == 1 || !t.IsRowMajor);
@@ -157,7 +191,7 @@ struct Cache :
 			kernel.forward(log2TransformLength, (float *)t.col(c).topRows(transformLength).data(), f.col(c).topRows(transformLength / 2 + 1).data());
 	}
 
-	void inverse(int log2TransformLength, Eigen::Ref<Eigen::ArrayXXf> t, const Eigen::Ref<const Eigen::ArrayXXcf> &f) const override
+	inline void inverse(int log2TransformLength, Eigen::Ref<Eigen::ArrayXXf> t, const Eigen::Ref<const Eigen::ArrayXXcf> &f) const
 	{
 		BUNGEE_ASSERT1(t.cols() == t.cols());
 		BUNGEE_ASSERT1(t.cols() == 1 || !t.IsRowMajor);
@@ -169,7 +203,5 @@ struct Cache :
 			kernel.inverse(log2TransformLength, t.col(c).topRows(transformLength).data(), (std::complex<float> *)f.col(c).topRows(transformLength / 2 + 1).data());
 	}
 };
-
-std::unique_ptr<Transforms> transforms();
 
 } // namespace Bungee::Fourier

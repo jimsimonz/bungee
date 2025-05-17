@@ -18,7 +18,7 @@ struct Stretcher :
 	Timing,
 	Instrumentation
 {
-	std::unique_ptr<Fourier::Transforms> transforms;
+	Fourier::Transforms transforms;
 	Input input;
 	Grains grains;
 	Output output;

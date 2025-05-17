@@ -8,6 +8,12 @@
 
 namespace Bungee::Fourier {
 
+#ifndef BUNGEE_USE_KISS_FFT
+#	define BUNGEE_USE_KISS_FFT 1
+#endif
+
+#if BUNGEE_USE_KISS_FFT
+
 struct Kiss
 {
 	struct KernelBase
@@ -57,9 +63,38 @@ void Kiss::Kernel<isInverse>::inverse(int, float *t, std::complex<float> *f) con
 	kiss_fftri((kiss_fftr_cfg)implementation, (kiss_fft_cpx *)f, t);
 }
 
-std::unique_ptr<Transforms> transforms()
+typedef Cache<Kiss, 16> Implementation;
+
+Transforms::Transforms()
 {
-	return std::make_unique<Cache<Kiss, 16>>();
+	p = new Implementation;
 }
+
+Transforms::~Transforms()
+{
+	delete reinterpret_cast<Implementation *>(p);
+}
+
+void Transforms::prepareForward(int log2TransformLength)
+{
+	reinterpret_cast<Implementation *>(p)->prepareForward(log2TransformLength);
+}
+
+void Transforms::prepareInverse(int log2TransformLength)
+{
+	reinterpret_cast<Implementation *>(p)->prepareInverse(log2TransformLength);
+}
+
+void Transforms::forward(int log2TransformLength, const Eigen::Ref<const Eigen::ArrayXXf> &t, Eigen::Ref<Eigen::ArrayXXcf> f)
+{
+	reinterpret_cast<Implementation *>(p)->forward(log2TransformLength, t, f);
+}
+
+void Transforms::inverse(int log2TransformLength, Eigen::Ref<Eigen::ArrayXXf> t, const Eigen::Ref<const Eigen::ArrayXXcf> &f)
+{
+	reinterpret_cast<Implementation *>(p)->inverse(log2TransformLength, t, f);
+}
+
+#endif
 
 } // namespace Bungee::Fourier
