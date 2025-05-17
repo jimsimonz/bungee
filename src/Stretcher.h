@@ -37,11 +37,11 @@ struct Stretcher :
 	bool isFlushed() const;
 };
 
-template <class S, const char **e, const char **v>
+template <class S, const char *const *e, const char *const *v>
 struct Functions :
 	Bungee::Functions
 {
-	Functions()
+	constexpr Functions()
 	{
 		edition = []() { return *e; };
 		version = []() { return *v; };
