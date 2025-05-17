@@ -3,6 +3,7 @@
 
 #include "Assert.h"
 
+#include <csignal>
 #include <cstdio>
 #include <cstdlib>
 
@@ -29,6 +30,7 @@ FloatingPointExceptions::FloatingPointExceptions(int allowed) :
 #	ifdef __GLIBC__
 	fedisableexcept(FE_ALL_EXCEPT);
 	feenableexcept(FE_ALL_EXCEPT & ~allowed);
+	std::signal(SIGFPE, [](int signum) { std::abort(); });
 #	endif
 }
 
