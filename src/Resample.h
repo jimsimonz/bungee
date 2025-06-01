@@ -19,7 +19,7 @@ typedef Eigen::Block<Ref, 1, Eigen::Dynamic, false> Row;
 
 struct FixedToVariable
 {
-	static inline float applyGain(float coefficient, float)
+	static constexpr float applyGain(float coefficient, float)
 	{
 		return coefficient;
 	}
@@ -36,15 +36,18 @@ struct FixedToVariable
 
 struct VariableToFixed
 {
-	static inline float applyGain(float coefficient, float gain)
+	static constexpr float applyGain(float coefficient, float gain)
 	{
 		return coefficient * gain;
 	}
 
-	template <bool>
+	template <bool first>
 	static inline void tap(float &__restrict fixed, float variable, float coefficient)
 	{
-		fixed += variable * coefficient;
+		if constexpr (first)
+			fixed = variable * coefficient;
+		else
+			fixed += variable * coefficient;
 	}
 };
 
@@ -112,9 +115,6 @@ inline void resampleInner(int variableFrameCount, Padded &fixedBuffer, float &fi
 {
 	const float ratioGradient = (ratioEnd - ratioBegin) / variableFrameCount;
 	BUNGEE_ASSERT1(ratioChange || ratioGradient == 0.f);
-
-	if constexpr (std::is_same_v<Mode, VariableToFixed>)
-		fixedBuffer.array.setZero();
 
 	const auto offset = Padded::padding + fixedBufferOffset;
 	float ratio = ratioBegin;
