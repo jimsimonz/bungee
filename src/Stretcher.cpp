@@ -90,8 +90,6 @@ void Internal::Stretcher::synthesiseGrain(OutputChunk &outputChunk)
 	auto &grain = grains[0];
 	if (grain.valid())
 	{
-		auto n = Fourier::binCount(grain.log2TransformLength);
-
 		BUNGEE_ASSERT1(!grain.passthrough || grain.analysis.speed == grain.passthrough);
 
 		Synthesis::synthesise(log2SynthesisHop, grain, grains[1]);
